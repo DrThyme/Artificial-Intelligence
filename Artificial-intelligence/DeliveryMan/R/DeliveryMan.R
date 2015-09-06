@@ -31,6 +31,74 @@ manualDM=function(roads,car,packages) {
   return (car)
 }
 
+# A very basic least-cost test where the car will always take the road
+# with the least cost.
+basicATest=function(roads,car,packages) {
+  up = roads$vroads[car$y+1,car$x]
+  right = roads$vroads[car$y,car$x+1]
+  print(paste("cost up:",up))
+  print(paste("cost right:",right))
+  if (up >= right){
+    car$nextMove = 6
+    print("MOVED RIGHT")
+    print("-------------------")
+    
+  } else {
+    car$nextMove = 8
+    print("MOVED UP")
+    print("-------------------")
+  }
+  return (car)
+}
+
+#The total distance needed for every packet
+packetDistance=function(roads,car,packages) {
+  distance = abs(packages[,1]-packages[,2])+abs(packages[,3]-packages[,4])-packages[,5]
+  return (distance)
+}
+
+#Choosing which path to take
+calculateNextMove=function(car,destX,destY) {
+  print(destX)
+  print(destY)
+  if (car$x < destX){
+    return (6)
+  }
+  if (car$x > destX){
+    return (4)
+  }
+  if (car$y < destY){
+    return (8)
+  }
+  if (car$y > destY){
+    return (2)
+  }
+}
+
+# Finding the closest package
+closestPackage=function(roads,car,packages) {
+  if (car$load == 0) {
+  distanceForPackage = abs(packages[,1]-packages[,3])+abs(packages[,2]-packages[,4])
+  distanceForCar = abs(car$x-packages[,1])+abs(car$y-packages[,2])
+  totalDistance = distanceForPackage + distanceForCar
+  #distance = packetDistance(packages)
+  goal=which(totalDistance==min(totalDistance,na.rm=TRUE))
+  car$mem.xdest=packages[goal,1]
+  car$mem.ydest=packages[goal,2]
+
+  print(totalDistance)
+  print(paste("Pickup Location: X",packages[goal,1],"Y",packages[goal,2]))
+  }
+  if (car$load>0) {
+    car$mem.xdest=packages[car$load,3]
+    car$mem.ydest=packages[car$load,4]
+    print(paste("Current load:",car$load))
+    print(paste("Destination: X",packages[car$load,3],"Y",packages[car$load,4]))
+  }  
+  car$nextMove=calculateNextMove(car,car$mem.xdest,car$mem.ydest)
+  return (car)
+}
+
 #' Run Delivery Man
 #' 
 #' Runs the delivery man game. In this game, deliveries are randomly placed on a city grid. You
@@ -61,7 +129,7 @@ manualDM=function(roads,car,packages) {
 #' @export
 runDeliveryMan <- function (carReady=manualDM,dim=10,turns=2000,pause=0.1,del=5) {
   roads=makeRoadMatrices(dim)
-  car=list(x=1,y=1,wait=0,load=0,nextMove=NA,mem=list())
+  car=list(x=1,y=1,wait=0,load=0,nextMove=NA,mem=list(xdest=0,ydest=0))
   packages=matrix(sample(1:dim,replace=T,5*del),ncol=5)
   packages[,5]=rep(0,del)
   for (i in 1:turns) {
@@ -79,6 +147,7 @@ runDeliveryMan <- function (carReady=manualDM,dim=10,turns=2000,pause=0.1,del=5)
         }
       } else if (packages[car$load,3]==car$x && packages[car$load,4]==car$y) {
         packages[car$load,5]=2
+        packages[car$load,1]=NA
         car$load=0
         if (sum(packages[,5])==2*nrow(packages)) {
           print (paste("Congratulations! You suceeded in",i,"turns!"))
