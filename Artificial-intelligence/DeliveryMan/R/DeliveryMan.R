@@ -31,9 +31,11 @@ manualDM=function(roads,car,packages) {
   return (car)
 }
 
+#AV TIM
 # A very basic least-cost test where the car will always take the road
 # with the least cost.
 basicATest=function(roads,car,packages) {
+  print(packages)
   up = roads$vroads[car$y+1,car$x]
   right = roads$vroads[car$y,car$x+1]
   print(paste("cost up:",up))
@@ -51,12 +53,15 @@ basicATest=function(roads,car,packages) {
   return (car)
 }
 
+#AV TIM
 #The total distance needed for every packet
 packetDistance=function(roads,car,packages) {
   distance = abs(packages[,1]-packages[,2])+abs(packages[,3]-packages[,4])-packages[,5]
   return (distance)
 }
 
+
+#AV TIM
 #Choosing which path to take
 calculateNextMove=function(car,destX,destY) {
   print(destX)
@@ -75,12 +80,14 @@ calculateNextMove=function(car,destX,destY) {
   }
 }
 
+# AV TIM
 # Finding the closest package
 closestPackage=function(roads,car,packages) {
   if (car$load == 0) {
   distanceForPackage = abs(packages[,1]-packages[,3])+abs(packages[,2]-packages[,4])
   distanceForCar = abs(car$x-packages[,1])+abs(car$y-packages[,2])
-  totalDistance = distanceForPackage + distanceForCar
+  #totalDistance = distanceForPackage + distanceForCar
+  totalDistance = distanceForCar
   #distance = packetDistance(packages)
   goal=which(totalDistance==min(totalDistance,na.rm=TRUE))
   car$mem.xdest=packages[goal,1]
@@ -97,6 +104,86 @@ closestPackage=function(roads,car,packages) {
   }  
   car$nextMove=calculateNextMove(car,car$mem.xdest,car$mem.ydest)
   return (car)
+}
+#AV TIM, ANNA och LINUS
+createFrontiers=function(){
+  frontiers = list(xcord=list(),ycord=list(),cost=list())
+  return (frontiers)
+}
+
+#AV TIM, ANNA och LINUS
+isEmptyFrontiers=function(frontiers){
+  return (length(frontiers$xcord)==0)
+}
+
+#AV TIM, ANNA och LINUS
+popFrontiers=function(frontiers){
+  index = which.min(frontiers$cost)
+  value = list(xcord=frontiers$xcord[[index]],ycord=frontiers$ycord[[index]],
+               cost=frontiers$cost[[index]],front=NULL)
+  frontiers$xcord[[index]] <- NULL
+  frontiers$ycord[[index]] <- NULL
+  frontiers$cost[[index]] <- NULL
+  value$front = frontiers
+  return (value)
+}
+
+#AV TIM, ANNA och LINUS
+pushFrontiers=function(frontiers,newxcord,newycord,newcost){
+  frontiers$xcord = append(frontiers$xcord,newxcord)
+  frontiers$ycord = append(frontiers$ycord,newycord)
+  frontiers$cost = append(frontiers$cost,newcost)
+  return (frontiers)
+}
+
+#AV TIM, ANNA och LINUS
+simplePathfinding=function(roads,car,xdest,ydest){
+  hArray=findHeuristics(xdest,ydest)
+  frontiers = createFrontier()
+  frontiers = pushFrontiers(frontiers,car$x,car$y,hArray[car$x,car$y])
+  visited = matrix(0,nrow=10,ncol=10)
+  while(isEmptyFrontier(frontiers)){
+    value = popFrontiers(frontiers)
+    frontiers = value$front
+    #Exchange 10 with dimension for bigger grids.
+    if(value$ycord+1=<10) {
+      if(visited[value$xcord,value$ycord+1]==0){
+      frontiers = pushFrontiers(frontiers,value$xcord,value$ycord+1,
+                                (hArray[value$xcord,value$ycord+1]+roads$vroads[value$ycord,value$xcord]))
+      }
+    }
+    if(value$ycord-1=>1) { 
+      if(visited[value$xcord,value$ycord-1]==0){
+      frontiers = pushFrontiers(frontiers,value$xcord,value$ycord-1,
+                                (hArray[value$xcord,value$ycord-1]+roads$vroads[value$ycord-1,value$xcord]))
+      } 
+    }
+    if(value$xcord+1=<10) { 
+      if(visited[value$xcord+1,value$ycord]==0){
+      frontiers = pushFrontiers(frontiers,value$xcord+1,value$ycord,
+                                (hArray[value$xcord,value$ycord+1]+roads$hroads[value$ycord,value$xcord]))
+      } 
+    }
+    if(value$xcord-1=>1) { 
+      if(visited[value$xcord-1,value$ycord]==0){
+      frontiers = pushFrontiers(frontiers,value$xcord-1,value$ycord,
+                                (hArray[value$xcord-1,value$ycord]+roads$hroads[value$ycord,value$xcord-1]))
+      } 
+    }
+    visited[value$xcord,value$ycord]=1 #Siffra för hur vi kom till denna nod!
+  }
+}
+
+#AV TIM, ANNA och LINUS
+findHeuristics=function(xdest,ydest) {
+  hArray<-array(0,dim = c(10,10))
+  for(x in 1:10){
+    for(y in 1:10){
+      hArray[x,y]=abs(x-xdest)+abs(y-ydest)
+    }
+  }
+  #print(hArray)
+  return (hArray)
 }
 
 #' Run Delivery Man
@@ -147,7 +234,7 @@ runDeliveryMan <- function (carReady=manualDM,dim=10,turns=2000,pause=0.1,del=5)
         }
       } else if (packages[car$load,3]==car$x && packages[car$load,4]==car$y) {
         packages[car$load,5]=2
-        packages[car$load,1]=NA
+        packages[car$load,1]=NA #Tillagt av TIM
         car$load=0
         if (sum(packages[,5])==2*nrow(packages)) {
           print (paste("Congratulations! You suceeded in",i,"turns!"))
