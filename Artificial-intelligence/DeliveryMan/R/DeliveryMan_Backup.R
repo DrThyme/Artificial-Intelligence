@@ -84,17 +84,17 @@ calculateNextMove=function(car,destX,destY) {
 # Finding the closest package
 closestPackage=function(roads,car,packages) {
   if (car$load == 0) {
-    distanceForPackage = abs(packages[,1]-packages[,3])+abs(packages[,2]-packages[,4])
-    distanceForCar = abs(car$x-packages[,1])+abs(car$y-packages[,2])
-    #totalDistance = distanceForPackage + distanceForCar
-    totalDistance = distanceForCar
-    #distance = packetDistance(packages)
-    goal=which(totalDistance==min(totalDistance,na.rm=TRUE))
-    car$mem.xdest=packages[goal,1]
-    car$mem.ydest=packages[goal,2]
-    
-    print(totalDistance)
-    print(paste("Pickup Location: X",packages[goal,1],"Y",packages[goal,2]))
+  distanceForPackage = abs(packages[,1]-packages[,3])+abs(packages[,2]-packages[,4])
+  distanceForCar = abs(car$x-packages[,1])+abs(car$y-packages[,2])
+  #totalDistance = distanceForPackage + distanceForCar
+  totalDistance = distanceForCar
+  #distance = packetDistance(packages)
+  goal=which(totalDistance==min(totalDistance,na.rm=TRUE))
+  car$mem.xdest=packages[goal,1]
+  car$mem.ydest=packages[goal,2]
+
+  print(totalDistance)
+  print(paste("Pickup Location: X",packages[goal,1],"Y",packages[goal,2]))
   }
   if (car$load>0) {
     car$mem.xdest=packages[car$load,3]
@@ -113,7 +113,7 @@ createFrontiers=function(){
 
 #AV TIM, ANNA och LINUS
 isEmptyFrontiers=function(frontiers){
-  return (length(frontiers$xcord)!=0)
+  return (length(frontiers$xcord)==0)
 }
 
 #AV TIM, ANNA och LINUS
@@ -137,125 +137,53 @@ pushFrontiers=function(frontiers,newxcord,newycord,newcost){
 }
 
 #AV TIM, ANNA och LINUS
-simplePathfinding=function(roads,car,xdest,ydest,dim){
-  hArray=findHeuristics(xdest,ydest,dim)
-  frontiers = createFrontiers()
+simplePathfinding=function(roads,car,xdest,ydest){
+  hArray=findHeuristics(xdest,ydest)
+  frontiers = createFrontier()
   frontiers = pushFrontiers(frontiers,car$x,car$y,hArray[car$x,car$y])
-  visited = matrix(0,nrow=dim,ncol=dim)
-  moves = matrix(0,nrow=dim,ncol=dim)
-  while(isEmptyFrontiers(frontiers)){
+  visited = matrix(0,nrow=10,ncol=10)
+  while(isEmptyFrontier(frontiers)){
     value = popFrontiers(frontiers)
     frontiers = value$front
-    if((value$xcord == xdest) && (value$ycord == ydest)){
-      break
-    }else {
-      if(value$ycord<dim) {
-        if(visited[value$xcord,value$ycord+1]==0){
-          frontiers = pushFrontiers(frontiers,value$xcord,value$ycord+1,
-                                    (hArray[value$xcord,value$ycord+1]+roads$vroads[value$ycord,value$xcord]))
-          moves[value$xcord,value$ycord+1]=8
-        }
-      }
-      if(value$ycord>1) { 
-        if(visited[value$xcord,value$ycord-1]==0){
-          frontiers = pushFrontiers(frontiers,value$xcord,value$ycord-1,
-                                    (hArray[value$xcord,value$ycord-1]+roads$vroads[value$ycord-1,value$xcord]))
-          moves[value$xcord,value$ycord-1]=2
-        } 
-      }
-      if(value$xcord<dim) { 
-        if(visited[value$xcord+1,value$ycord]==0){
-          frontiers = pushFrontiers(frontiers,value$xcord+1,value$ycord,
-                                    (hArray[value$xcord+1,value$ycord]+roads$hroads[value$ycord,value$xcord]))
-          moves[value$xcord+1,value$ycord]=6
-        } 
-      }
-      if(value$xcord>1) { 
-        if(visited[value$xcord-1,value$ycord]==0){
-          frontiers = pushFrontiers(frontiers,value$xcord-1,value$ycord,
-                                    (hArray[value$xcord-1,value$ycord]+roads$hroads[value$ycord,value$xcord-1]))
-          moves[value$xcord-1,value$ycord]=4
-        } 
-      }
-      visited[value$xcord,value$ycord]=1 #Siffra för hur vi kom till denna nod! FIXED?
-    }
-  }
-  return (moves)
-  
-}
-
-#AV TIM
-findPath=function(xdest,ydest,moves){
-  x=xdest
-  y=ydest
-  last=0
-  flag = TRUE
-  while(flag){
-    current = moves[x,y]
-    #print("current")
-    #print(current)
-    if(is.null(current) | current == 0){
-      flag = FALSE
-      current=10
-    } else {
-      if(current == 8){
-        last = 8
-        y=y-1
-        
-      }
-      if(current == 2){
-        last = 2
-        y=y+1
-      }
-      if(current==6){
-        last = 6
-        x=x-1
-      }
-      if(current==4){
-        last = 4
-        x=x+1
+    #Exchange 10 with dimension for bigger grids.
+    if(value$ycord+1=<10) {
+      if(visited[value$xcord,value$ycord+1]==0){
+      frontiers = pushFrontiers(frontiers,value$xcord,value$ycord+1,
+                                (hArray[value$xcord,value$ycord+1]+roads$vroads[value$ycord,value$xcord]))
       }
     }
-    
+    if(value$ycord-1=>1) { 
+      if(visited[value$xcord,value$ycord-1]==0){
+      frontiers = pushFrontiers(frontiers,value$xcord,value$ycord-1,
+                                (hArray[value$xcord,value$ycord-1]+roads$vroads[value$ycord-1,value$xcord]))
+      } 
+    }
+    if(value$xcord+1=<10) { 
+      if(visited[value$xcord+1,value$ycord]==0){
+      frontiers = pushFrontiers(frontiers,value$xcord+1,value$ycord,
+                                (hArray[value$xcord,value$ycord+1]+roads$hroads[value$ycord,value$xcord]))
+      } 
+    }
+    if(value$xcord-1=>1) { 
+      if(visited[value$xcord-1,value$ycord]==0){
+      frontiers = pushFrontiers(frontiers,value$xcord-1,value$ycord,
+                                (hArray[value$xcord-1,value$ycord]+roads$hroads[value$ycord,value$xcord-1]))
+      } 
+    }
+    visited[value$xcord,value$ycord]=1 #Siffra för hur vi kom till denna nod!
   }
-  #print(last)
-  return (last)
-  
 }
 
 #AV TIM, ANNA och LINUS
-findHeuristics=function(xdest,ydest,d) {
-  hArray<-array(0,dim = c(d,d))
-  for(x in 1:d){
-    for(y in 1:d){
-      hArray[x,y]=(abs(x-xdest)+abs(y-ydest))*3
+findHeuristics=function(xdest,ydest) {
+  hArray<-array(0,dim = c(10,10))
+  for(x in 1:10){
+    for(y in 1:10){
+      hArray[x,y]=abs(x-xdest)+abs(y-ydest)
     }
   }
   #print(hArray)
   return (hArray)
-}
-
-#AV TIM
-simpleTest=function(roads,car,packages) {
-  dim = car$mem$size
-  if(car$load==0){
-    distanceForPackage = abs(packages[,1]-packages[,3])+abs(packages[,2]-packages[,4])
-    distanceForCar = abs(car$x-packages[,1])+abs(car$y-packages[,2])
-    totalDistance = distanceForCar
-    goal=which(totalDistance==min(totalDistance,na.rm=TRUE))[1]
-    xdest=packages[goal,1]
-    ydest=packages[goal,2]
-    moves = simplePathfinding(roads,car,xdest,ydest,dim)
-    nextMove = findPath(xdest,ydest,moves)
-  } else if(car$load > 0){
-    xdest=packages[car$load,3]
-    ydest=packages[car$load,4]
-    moves = simplePathfinding(roads,car,xdest,ydest,dim)
-    nextMove = findPath(xdest,ydest,moves)
-  }
-  #print(nextMove)
-  car$nextMove=nextMove
-  return (car)
 }
 
 #' Run Delivery Man
@@ -288,7 +216,7 @@ simpleTest=function(roads,car,packages) {
 #' @export
 runDeliveryMan <- function (carReady=manualDM,dim=10,turns=2000,pause=0.1,del=5) {
   roads=makeRoadMatrices(dim)
-  car=list(x=1,y=1,wait=0,load=0,nextMove=NA,mem=list(xdest=0,ydest=0,size=dim))
+  car=list(x=1,y=1,wait=0,load=0,nextMove=NA,mem=list(xdest=0,ydest=0))
   packages=matrix(sample(1:dim,replace=T,5*del),ncol=5)
   packages[,5]=rep(0,del)
   for (i in 1:turns) {
