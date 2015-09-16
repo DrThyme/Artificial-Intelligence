@@ -53,6 +53,64 @@ basicATest=function(roads,car,packages) {
   return (car)
 }
 
+testFunction=function(roads,car,packages){
+  findPackagePath(packages,car)
+}
+
+#AV TIM
+findPackagePath=function(packages){
+  route = c()
+  cost=c()
+  currentx = 1
+  currenty = 1
+  packages <- cbind(packages, 0)
+  packages[,5] = (abs(currentx-packages[,1])+abs(currenty-packages[,2]))
+  packages[,6] = (abs(packages[,1]-packages[,3])+abs(packages[,2]-packages[,4]))
+  next_route = 0
+  for(i in 1:5){
+    copy = packages
+    currentcost = copy[i,5]+copy[i,6]
+    route = append(route, i)
+    copy[i,1] = NA
+    currentx = packages[i,3]
+    currenty = packages[i,4]
+    for(j in 1:4){
+      #print(copy)
+      copy[,5] <- (abs(currentx-copy[,1])+abs(currenty-copy[,2]))
+      min = min(copy[,5], na.rm=TRUE)
+      next_route = which(copy[,5] == min)[1]
+      route = append(route,next_route)
+      copy[next_route,1] = NA
+      currentx = copy[next_route,3]
+      currenty = copy[next_route,4]
+      currentcost = currentcost + copy[next_route,5] + copy[next_route,6]
+      #print(currentx)
+      #print(currenty)
+    }
+    cost = append(cost,currentcost)
+  }
+  leastCost = which.min(cost)[1]
+  optimalRoute = c()
+  for(i in 1:5){
+    optimalRoute = append(optimalRoute, route[i+((leastCost-1)*5)])
+  }
+  return(optimalRoute)
+}
+
+choosePackage=function(route,packages){
+  if(packages[route[1],5] == 0){
+    return (route[1])
+  } else if(packages[route[2],5] == 0){
+    return (route[2])
+  } else if(packages[route[3],5] == 0){
+    return (route[3])
+  } else if(packages[route[4],5] == 0){
+    return (route[4])
+  } else if(packages[route[5],5] == 0){
+    return (route[5])
+  }
+}
+
 #AV TIM
 #The total distance needed for every packet
 packetDistance=function(roads,car,packages) {
@@ -177,11 +235,11 @@ simplePathfinding=function(roads,car,xdest,ydest,dim){
           moves[value$xcord-1,value$ycord]=4
         } 
       }
+<<<<<<< HEAD
       visited[value$xcord,value$ycord]=1 #Siffra för hur vi kom till denna nod! FIXED?
     }
   }
   return (moves)
-  
 }
 
 #AV TIM
@@ -239,10 +297,11 @@ findHeuristics=function(xdest,ydest,d) {
 simpleTest=function(roads,car,packages) {
   dim = car$mem$size
   if(car$load==0){
-    distanceForPackage = abs(packages[,1]-packages[,3])+abs(packages[,2]-packages[,4])
-    distanceForCar = abs(car$x-packages[,1])+abs(car$y-packages[,2])
-    totalDistance = distanceForCar
-    goal=which(totalDistance==min(totalDistance,na.rm=TRUE))[1]
+    #distanceForPackage = abs(packages[,1]-packages[,3])+abs(packages[,2]-packages[,4])
+    #distanceForCar = abs(car$x-packages[,1])+abs(car$y-packages[,2])
+    #totalDistance = distanceForCar + distanceForPackage
+    #goal=which(totalDistance==min(totalDistance,na.rm=TRUE))[1]
+    goal = choosePackage(car$mem$route, packages)
     xdest=packages[goal,1]
     ydest=packages[goal,2]
     moves = simplePathfinding(roads,car,xdest,ydest,dim)
@@ -258,6 +317,52 @@ simpleTest=function(roads,car,packages) {
   return (car)
 }
 
+# AV TIM
+benchmark <- function (runs){
+  Teachers = 0
+  Ours = 0
+  for(i in 1:runs){
+    rand <- sample(1:100000,1)
+    print(rand)
+    set.seed(rand)
+    Teachers = Teachers + runDeliveryMan(carReady = basicDM, dim = 10, turns = 2000, pause = 0,del = 5)
+    set.seed(rand)
+    Ours = Ours + runDeliveryMan(carReady = simpleTest, dim = 10, turns = 2000, pause = 0,del = 5)
+  }
+  OurAvg = Ours/runs
+  TeacherAvg = Teachers/runs
+  howMuchBetter = (TeacherAvg-OurAvg)/TeacherAvg
+  print(paste("Our average is:", OurAvg))
+  print(paste("Teachers average is:", TeacherAvg))
+  print(paste("We are this much better (percent): ", (howMuchBetter*100)))
+}
+
+# AV TIM
+benchmarkIntervall <- function (start,end){
+  Teachers = 0
+  Ours = 0
+  for(i in start:end){
+    set.seed(i)
+    Teachers = Teachers + runDeliveryMan(carReady = basicDM, dim = 10, turns = 2000, pause = 0,del = 5)
+    set.seed(i)
+    Ours = Ours + runDeliveryMan(carReady = simpleTest, dim = 10, turns = 2000, pause = 0,del = 5)
+  }
+  OurAvg = Ours/(end-start)
+  TeacherAvg = Teachers/(end-start)
+  howMuchBetter = (TeacherAvg-OurAvg)/TeacherAvg
+  print(paste("Our average is:", OurAvg))
+  print(paste("Teachers average is:", TeacherAvg))
+  print(paste("We are this much better (percent): ", (howMuchBetter*100)))
+}
+
+seed <- function(seed){
+  set.seed(seed)
+  Teachers = runDeliveryMan(carReady = basicDM, dim = 10, turns = 2000, pause = 0,del = 5) 
+  set.seed(seed)
+  Ours = runDeliveryMan(carReady = simpleTest, dim = 10, turns = 2000, pause = 0,del = 5)
+  print(paste("Our turns: ",Ours))
+  print(paste("Teachers turns: ",Teachers))
+  }
 #' Run Delivery Man
 #' 
 #' Runs the delivery man game. In this game, deliveries are randomly placed on a city grid. You
@@ -288,15 +393,15 @@ simpleTest=function(roads,car,packages) {
 #' @export
 runDeliveryMan <- function (carReady=manualDM,dim=10,turns=2000,pause=0.1,del=5) {
   roads=makeRoadMatrices(dim)
-  car=list(x=1,y=1,wait=0,load=0,nextMove=NA,mem=list(xdest=0,ydest=0,size=dim))
   packages=matrix(sample(1:dim,replace=T,5*del),ncol=5)
   packages[,5]=rep(0,del)
+  car=list(x=1,y=1,wait=0,load=0,nextMove=NA,mem=list(xdest=0,ydest=0,size=dim,route=findPackagePath(packages)))
   for (i in 1:turns) {
-    makeDotGrid(dim,i) 
+    #makeDotGrid(dim,i) 
     roads=updateRoads(roads$hroads,roads$vroads)
-    plotRoads(roads$hroads,roads$vroads) 
-    points(car$x,car$y,pch=16,col="blue",cex=3)  
-    plotPackages(packages)
+    #plotRoads(roads$hroads,roads$vroads) 
+    #points(car$x,car$y,pch=16,col="blue",cex=3)  
+    #plotPackages(packages)
     if (car$wait==0) {
       if (car$load==0) {
         on=packageOn(car$x,car$y,packages)
@@ -309,7 +414,7 @@ runDeliveryMan <- function (carReady=manualDM,dim=10,turns=2000,pause=0.1,del=5)
         packages[car$load,1]=NA #Tillagt av TIM
         car$load=0
         if (sum(packages[,5])==2*nrow(packages)) {
-          print (paste("Congratulations! You suceeded in",i,"turns!"))
+          #print (paste("Congratulations! You suceeded in",i,"turns!"))
           return (i)
         }
       }      
@@ -449,5 +554,3 @@ updateRoads<-function(hroads,vroads) {
   }
   list (hroads=hroads,vroads=vroads)
 }
-
-
