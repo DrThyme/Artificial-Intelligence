@@ -163,6 +163,47 @@ closestPackage=function(roads,car,packages) {
   car$nextMove=calculateNextMove(car,car$mem.xdest,car$mem.ydest)
   return (car)
 }
+
+#AV ANNA
+bruteForcePackageOrder=function(packages){
+  toBeSearched = c(1:length(packages[1, ]))
+  bruteForcePackageOrderHelpis(-1, toBeSearched, packages)
+}
+
+#AV ANNA
+#Distance from A deliver to B pick up
+distanceFromAtoB=function(a, b, packages){
+  if (a == -1){
+    diffInX = abs(1 - packages[b, 1])
+    diffInY = abs(1 - packages[b, 2])
+  } else {
+    diffInX = abs(packages[a, 3] - packages[b, 1])
+    diffInY = abs(packages[a, 4] - packages[b, 2])
+  }
+  return(diffInX + diffInY)
+}
+
+#AV ANNA
+bruteForcePackageOrderHelpis=function(currentNode,toBeSearched,packages){
+  if(length(toBeSearched) != 0){
+    minScore = list(s=-1, n=NULL)
+    for(i in 1:(length(toBeSearched))){
+      futureScoreAndNode = bruteForcePackageOrderHelpis(i, toBeSearched[-i], packages)
+
+      score = distanceFromAtoB(currentNode, toBeSearched[i], packages) + 
+        distanceFromAtoB(toBeSearched[i], toBeSearched[i], packages) +
+        futureScoreAndNode$s
+        
+      if((minScore$s == -1) || (minScore$s > score)){
+        minScore$s = score
+        minScore$n = append(toBeSearched[i], futureScoreAndNode$n)
+      }
+    }
+    return(minScore)
+  }
+  return(list(s=0, n=NULL))
+}
+
 #AV TIM, ANNA och LINUS
 createFrontiers=function(){
   frontiers = list(xcord=list(),ycord=list(),cost=list())
@@ -235,7 +276,6 @@ simplePathfinding=function(roads,car,xdest,ydest,dim){
           moves[value$xcord-1,value$ycord]=4
         } 
       }
-<<<<<<< HEAD
       visited[value$xcord,value$ycord]=1 #Siffra för hur vi kom till denna nod! FIXED?
     }
   }
@@ -278,7 +318,6 @@ findPath=function(xdest,ydest,moves){
   }
   #print(last)
   return (last)
-  
 }
 
 #AV TIM, ANNA och LINUS
@@ -396,6 +435,10 @@ runDeliveryMan <- function (carReady=manualDM,dim=10,turns=2000,pause=0.1,del=5)
   packages=matrix(sample(1:dim,replace=T,5*del),ncol=5)
   packages[,5]=rep(0,del)
   car=list(x=1,y=1,wait=0,load=0,nextMove=NA,mem=list(xdest=0,ydest=0,size=dim,route=findPackagePath(packages)))
+  #AV ANNA OBS SKA BORT!!!!!!!!!!!!!!!!!!!!!!
+  #return (packages)
+  #bruteForcePackageOrder(packages)  
+  #------------------------------------------
   for (i in 1:turns) {
     #makeDotGrid(dim,i) 
     roads=updateRoads(roads$hroads,roads$vroads)
