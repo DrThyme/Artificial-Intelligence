@@ -170,18 +170,22 @@ closestPackage=function(roads,car,packages) {
 }
 
 #AV ANNA
-bruteForcePackageOrder=function(packages){
-  toBeSearched = c(1:length(packages[1, ]))
-  temp = bruteForcePackageOrderHelpis(-1, toBeSearched, packages)
-  return (temp$n)
+bruteForcePackageOrder=function(packages,car){
+  toBeSearched = NULL
+  for(i in 1:length(packages[1,])){
+    if(packages[i, 5] == 0){
+      toBeSearched = append(i,toBeSearched)
+    }
+  }
+  return (bruteForcePackageOrderHelpis(-1,toBeSearched,packages,car)$n)
 }
 
 #AV ANNA
 #Distance from A deliver to B pick up
-distanceFromAtoB=function(a, b, packages){
+distanceFromAtoB=function(a,b,packages,car){
   if (a == -1){
-    diffInX = abs(1 - packages[b, 1])
-    diffInY = abs(1 - packages[b, 2])
+    diffInX = abs(car$x - packages[b, 1])
+    diffInY = abs(car$y - packages[b, 2])
   } else {
     diffInX = abs(packages[a, 3] - packages[b, 1])
     diffInY = abs(packages[a, 4] - packages[b, 2])
@@ -190,19 +194,19 @@ distanceFromAtoB=function(a, b, packages){
 }
 
 #AV ANNA
-bruteForcePackageOrderHelpis=function(currentNode,toBeSearched,packages){
+bruteForcePackageOrderHelpis=function(currentNode,toBeSearched,packages,car){
   if(length(toBeSearched) != 0){
     minScore = list(s=-1, n=NULL)
     for(i in 1:(length(toBeSearched))){
-      futureScoreAndNode = bruteForcePackageOrderHelpis(i, toBeSearched[-i], packages)
+      futureScoreAndNode = bruteForcePackageOrderHelpis(i,toBeSearched[-i],packages,car)
 
-      score = distanceFromAtoB(currentNode, toBeSearched[i], packages) + 
-        distanceFromAtoB(toBeSearched[i], toBeSearched[i], packages) +
+      score = distanceFromAtoB(currentNode,toBeSearched[i],packages,car) + 
+        distanceFromAtoB(toBeSearched[i],toBeSearched[i],packages,car) +
         futureScoreAndNode$s
         
       if((minScore$s == -1) || (minScore$s > score)){
         minScore$s = score
-        minScore$n = append(toBeSearched[i], futureScoreAndNode$n)
+        minScore$n = append(toBeSearched[i],futureScoreAndNode$n)
       }
     }
     return(minScore)
