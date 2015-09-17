@@ -165,17 +165,22 @@ closestPackage=function(roads,car,packages) {
 }
 
 #AV ANNA
-bruteForcePackageOrder=function(packages){
-  toBeSearched = c(1:length(packages[1, ]))
-  bruteForcePackageOrderHelpis(-1, toBeSearched, packages)
+bruteForcePackageOrder=function(packages,car){
+  toBeSearched = NULL
+  for(i in 1:length(packages[1,])){
+    if(packages[i, 5] == 0){
+      toBeSearched = append(i,toBeSearched)
+    }
+  }
+  return (bruteForcePackageOrderHelpis(-1,toBeSearched,packages,car)$n)
 }
 
 #AV ANNA
 #Distance from A deliver to B pick up
-distanceFromAtoB=function(a, b, packages){
+distanceFromAtoB=function(a,b,packages,car){
   if (a == -1){
-    diffInX = abs(1 - packages[b, 1])
-    diffInY = abs(1 - packages[b, 2])
+    diffInX = abs(car$x - packages[b, 1])
+    diffInY = abs(car$y - packages[b, 2])
   } else {
     diffInX = abs(packages[a, 3] - packages[b, 1])
     diffInY = abs(packages[a, 4] - packages[b, 2])
@@ -184,19 +189,19 @@ distanceFromAtoB=function(a, b, packages){
 }
 
 #AV ANNA
-bruteForcePackageOrderHelpis=function(currentNode,toBeSearched,packages){
+bruteForcePackageOrderHelpis=function(currentNode,toBeSearched,packages,car){
   if(length(toBeSearched) != 0){
     minScore = list(s=-1, n=NULL)
     for(i in 1:(length(toBeSearched))){
-      futureScoreAndNode = bruteForcePackageOrderHelpis(i, toBeSearched[-i], packages)
+      futureScoreAndNode = bruteForcePackageOrderHelpis(i,toBeSearched[-i],packages,car)
 
-      score = distanceFromAtoB(currentNode, toBeSearched[i], packages) + 
-        distanceFromAtoB(toBeSearched[i], toBeSearched[i], packages) +
+      score = distanceFromAtoB(currentNode,toBeSearched[i],packages,car) + 
+        distanceFromAtoB(toBeSearched[i],toBeSearched[i],packages,car) +
         futureScoreAndNode$s
         
       if((minScore$s == -1) || (minScore$s > score)){
         minScore$s = score
-        minScore$n = append(toBeSearched[i], futureScoreAndNode$n)
+        minScore$n = append(toBeSearched[i],futureScoreAndNode$n)
       }
     }
     return(minScore)
@@ -333,7 +338,7 @@ findHeuristics=function(xdest,ydest,d) {
 }
 
 #AV TIM
-simpleTest=function(roads,car,packages) {
+changeNextMove=function(roads,car,packages) {
   dim = car$mem$size
   if(car$load==0){
     #distanceForPackage = abs(packages[,1]-packages[,3])+abs(packages[,2]-packages[,4])
@@ -366,7 +371,7 @@ benchmark <- function (runs){
     set.seed(rand)
     Teachers = Teachers + runDeliveryMan(carReady = basicDM, dim = 10, turns = 2000, pause = 0,del = 5)
     set.seed(rand)
-    Ours = Ours + runDeliveryMan(carReady = simpleTest, dim = 10, turns = 2000, pause = 0,del = 5)
+    Ours = Ours + runDeliveryMan(carReady = changeNextMove, dim = 10, turns = 2000, pause = 0,del = 5)
   }
   OurAvg = Ours/runs
   TeacherAvg = Teachers/runs
@@ -384,7 +389,7 @@ benchmarkIntervall <- function (start,end){
     set.seed(i)
     Teachers = Teachers + runDeliveryMan(carReady = basicDM, dim = 10, turns = 2000, pause = 0,del = 5)
     set.seed(i)
-    Ours = Ours + runDeliveryMan(carReady = simpleTest, dim = 10, turns = 2000, pause = 0,del = 5)
+    Ours = Ours + runDeliveryMan(carReady = changeNextMove, dim = 10, turns = 2000, pause = 0,del = 5)
   }
   OurAvg = Ours/(end-start)
   TeacherAvg = Teachers/(end-start)
@@ -398,7 +403,7 @@ seed <- function(seed){
   set.seed(seed)
   Teachers = runDeliveryMan(carReady = basicDM, dim = 10, turns = 2000, pause = 0,del = 5) 
   set.seed(seed)
-  Ours = runDeliveryMan(carReady = simpleTest, dim = 10, turns = 2000, pause = 0,del = 5)
+  Ours = runDeliveryMan(carReady = changeNextMove, dim = 10, turns = 2000, pause = 0,del = 5)
   print(paste("Our turns: ",Ours))
   print(paste("Teachers turns: ",Teachers))
   }
@@ -436,8 +441,8 @@ runDeliveryMan <- function (carReady=manualDM,dim=10,turns=2000,pause=0.1,del=5)
   packages[,5]=rep(0,del)
   car=list(x=1,y=1,wait=0,load=0,nextMove=NA,mem=list(xdest=0,ydest=0,size=dim,route=findPackagePath(packages)))
   #AV ANNA OBS SKA BORT!!!!!!!!!!!!!!!!!!!!!!
-  #return (packages)
-  #bruteForcePackageOrder(packages)  
+  return (list(p=packages,c=car))
+  bruteForcePackageOrder(packages)  
   #------------------------------------------
   for (i in 1:turns) {
     #makeDotGrid(dim,i) 
