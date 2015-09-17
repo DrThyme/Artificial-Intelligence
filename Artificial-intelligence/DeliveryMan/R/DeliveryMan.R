@@ -110,9 +110,8 @@ correctRouteList=function(route,packages){
 }
 
 choosePackage=function(packages,car){
-  route = findPackagePath(packages,car)
-  print(packages)
-  print(route[1])
+  #route = findPackagePath(packages,car)
+  route = bruteForcePackageOrder(packages,car)
   return (route[1])
 }
 
@@ -309,7 +308,6 @@ findPath=function(xdest,ydest,moves){
       if(current == 8){
         last = 8
         y=y-1
-        
       }
       if(current == 2){
         last = 2
@@ -324,11 +322,10 @@ findPath=function(xdest,ydest,moves){
         x=x+1
       }
     }
-    
   }
-  #print(last)
   return (last)
 }
+
 
 #AV TIM, ANNA och LINUS
 findHeuristics=function(xdest,ydest,d) {
@@ -449,11 +446,11 @@ runDeliveryMan <- function (carReady=manualDM,dim=10,turns=2000,pause=0.1,del=5)
   car$mem$nextPackage = choosePackage(packages,car)
   #car=list(x=1,y=1,wait=0,load=0,nextMove=NA,mem=list(xdest=0,ydest=0,size=dim,nextPackage=bruteForcePackageOrder(packages)))
   for (i in 1:turns) {
-    makeDotGrid(dim,i) 
+    #makeDotGrid(dim,i) 
     roads=updateRoads(roads$hroads,roads$vroads)
-    plotRoads(roads$hroads,roads$vroads) 
-    points(car$x,car$y,pch=16,col="blue",cex=3)  
-    plotPackages(packages)
+    #plotRoads(roads$hroads,roads$vroads) 
+    #points(car$x,car$y,pch=16,col="blue",cex=3)  
+    #plotPackages(packages)
     if (car$wait==0) {
       if (car$load==0) {
         on=packageOn(car$x,car$y,packages)
