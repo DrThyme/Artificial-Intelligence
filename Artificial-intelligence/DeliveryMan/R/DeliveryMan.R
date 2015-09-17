@@ -58,32 +58,33 @@ testFunction=function(roads,car,packages){
 }
 
 #AV TIM
-findPackagePath=function(packages){
+findPackagePath=function(packages,car){
   route = c()
   cost=c()
-  currentx = 1
-  currenty = 1
-  packages <- cbind(packages, 0)
-  packages[,5] = (abs(currentx-packages[,1])+abs(currenty-packages[,2]))
-  packages[,6] = (abs(packages[,1]-packages[,3])+abs(packages[,2]-packages[,4]))
+  currentx = car$x
+  currenty = car$y
+  copy = packages
+  copy <- cbind(copy, 0)
+  copy[,5] = (abs(currentx-copy[,1])+abs(currenty-copy[,2]))
+  copy[,6] = (abs(copy[,1]-copy[,3])+abs(copy[,2]-copy[,4]))
   next_route = 0
   for(i in 1:5){
-    copy = packages
-    currentcost = copy[i,5]+copy[i,6]
+    tempCopy = copy
+    currentcost = tempCopy[i,5]+tempCopy[i,6]
     route = append(route, i)
-    copy[i,1] = NA
+    tempCopy[i,1] = NA
     currentx = packages[i,3]
     currenty = packages[i,4]
     for(j in 1:4){
       #print(copy)
-      copy[,5] <- (abs(currentx-copy[,1])+abs(currenty-copy[,2]))
-      min = min(copy[,5], na.rm=TRUE)
-      next_route = which(copy[,5] == min)[1]
+      tempCopy[,5] <- (abs(currentx-tempCopy[,1])+abs(currenty-tempCopy[,2]))
+      min = min(tempCopy[,5], na.rm=TRUE)
+      next_route = which(tempCopy[,5] == min)[1]
       route = append(route,next_route)
-      copy[next_route,1] = NA
-      currentx = copy[next_route,3]
-      currenty = copy[next_route,4]
-      currentcost = currentcost + copy[next_route,5] + copy[next_route,6]
+      tempCopy[next_route,1] = NA
+      currentx = tempCopy[next_route,3]
+      currenty = tempCopy[next_route,4]
+      currentcost = currentcost + tempCopy[next_route,5] + tempCopy[next_route,6]
       #print(currentx)
       #print(currenty)
     }
@@ -94,21 +95,25 @@ findPackagePath=function(packages){
   for(i in 1:5){
     optimalRoute = append(optimalRoute, route[i+((leastCost-1)*5)])
   }
-  return(optimalRoute)
+  fixedRoute = correctRouteList(optimalRoute,packages)
+  return(fixedRoute)
 }
 
-choosePackage=function(route,packages){
-  if(packages[route[1],5] == 0){
-    return (route[1])
-  } else if(packages[route[2],5] == 0){
-    return (route[2])
-  } else if(packages[route[3],5] == 0){
-    return (route[3])
-  } else if(packages[route[4],5] == 0){
-    return (route[4])
-  } else if(packages[route[5],5] == 0){
-    return (route[5])
+correctRouteList=function(route,packages){
+  altRoute = route
+  for(i in 1:5){
+    if(packages[i,5] == 2){
+      altRoute = altRoute[-i]
+    }
   }
+  return (altRoute)
+}
+
+choosePackage=function(packages,car){
+  route = findPackagePath(packages,car)
+  print(packages)
+  print(route[1])
+  return (route[1])
 }
 
 #AV TIM
@@ -167,7 +172,8 @@ closestPackage=function(roads,car,packages) {
 #AV ANNA
 bruteForcePackageOrder=function(packages){
   toBeSearched = c(1:length(packages[1, ]))
-  bruteForcePackageOrderHelpis(-1, toBeSearched, packages)
+  temp = bruteForcePackageOrderHelpis(-1, toBeSearched, packages)
+  return (temp$n)
 }
 
 #AV ANNA
@@ -333,14 +339,14 @@ findHeuristics=function(xdest,ydest,d) {
 }
 
 #AV TIM
-simpleTest=function(roads,car,packages) {
+changeNextMove=function(roads,car,packages) {
   dim = car$mem$size
   if(car$load==0){
     #distanceForPackage = abs(packages[,1]-packages[,3])+abs(packages[,2]-packages[,4])
     #distanceForCar = abs(car$x-packages[,1])+abs(car$y-packages[,2])
-    #totalDistance = distanceForCar + distanceForPackage
+    #totalDistance = distanceForCar
     #goal=which(totalDistance==min(totalDistance,na.rm=TRUE))[1]
-    goal = choosePackage(car$mem$route, packages)
+    goal = car$mem$nextPackage
     xdest=packages[goal,1]
     ydest=packages[goal,2]
     moves = simplePathfinding(roads,car,xdest,ydest,dim)
@@ -362,11 +368,11 @@ benchmark <- function (runs){
   Ours = 0
   for(i in 1:runs){
     rand <- sample(1:100000,1)
-    print(rand)
+    print(i)
     set.seed(rand)
     Teachers = Teachers + runDeliveryMan(carReady = basicDM, dim = 10, turns = 2000, pause = 0,del = 5)
     set.seed(rand)
-    Ours = Ours + runDeliveryMan(carReady = simpleTest, dim = 10, turns = 2000, pause = 0,del = 5)
+    Ours = Ours + runDeliveryMan(carReady = changeNextMove, dim = 10, turns = 2000, pause = 0,del = 5)
   }
   OurAvg = Ours/runs
   TeacherAvg = Teachers/runs
@@ -381,10 +387,11 @@ benchmarkIntervall <- function (start,end){
   Teachers = 0
   Ours = 0
   for(i in start:end){
+    print(i)
     set.seed(i)
     Teachers = Teachers + runDeliveryMan(carReady = basicDM, dim = 10, turns = 2000, pause = 0,del = 5)
     set.seed(i)
-    Ours = Ours + runDeliveryMan(carReady = simpleTest, dim = 10, turns = 2000, pause = 0,del = 5)
+    Ours = Ours + runDeliveryMan(carReady = changeNextMove, dim = 10, turns = 2000, pause = 0,del = 5)
   }
   OurAvg = Ours/(end-start)
   TeacherAvg = Teachers/(end-start)
@@ -398,7 +405,7 @@ seed <- function(seed){
   set.seed(seed)
   Teachers = runDeliveryMan(carReady = basicDM, dim = 10, turns = 2000, pause = 0,del = 5) 
   set.seed(seed)
-  Ours = runDeliveryMan(carReady = simpleTest, dim = 10, turns = 2000, pause = 0,del = 5)
+  Ours = runDeliveryMan(carReady = changeNextMove, dim = 10, turns = 2000, pause = 0,del = 5)
   print(paste("Our turns: ",Ours))
   print(paste("Teachers turns: ",Teachers))
   }
@@ -434,17 +441,15 @@ runDeliveryMan <- function (carReady=manualDM,dim=10,turns=2000,pause=0.1,del=5)
   roads=makeRoadMatrices(dim)
   packages=matrix(sample(1:dim,replace=T,5*del),ncol=5)
   packages[,5]=rep(0,del)
-  car=list(x=1,y=1,wait=0,load=0,nextMove=NA,mem=list(xdest=0,ydest=0,size=dim,route=findPackagePath(packages)))
-  #AV ANNA OBS SKA BORT!!!!!!!!!!!!!!!!!!!!!!
-  #return (packages)
-  #bruteForcePackageOrder(packages)  
-  #------------------------------------------
+  car=list(x=1,y=1,wait=0,load=0,nextMove=NA,mem=list(xdest=0,ydest=0,size=dim,nextPackage=0))
+  car$mem$nextPackage = choosePackage(packages,car)
+  #car=list(x=1,y=1,wait=0,load=0,nextMove=NA,mem=list(xdest=0,ydest=0,size=dim,nextPackage=bruteForcePackageOrder(packages)))
   for (i in 1:turns) {
-    #makeDotGrid(dim,i) 
+    makeDotGrid(dim,i) 
     roads=updateRoads(roads$hroads,roads$vroads)
-    #plotRoads(roads$hroads,roads$vroads) 
-    #points(car$x,car$y,pch=16,col="blue",cex=3)  
-    #plotPackages(packages)
+    plotRoads(roads$hroads,roads$vroads) 
+    points(car$x,car$y,pch=16,col="blue",cex=3)  
+    plotPackages(packages)
     if (car$wait==0) {
       if (car$load==0) {
         on=packageOn(car$x,car$y,packages)
@@ -454,12 +459,14 @@ runDeliveryMan <- function (carReady=manualDM,dim=10,turns=2000,pause=0.1,del=5)
         }
       } else if (packages[car$load,3]==car$x && packages[car$load,4]==car$y) {
         packages[car$load,5]=2
-        packages[car$load,1]=NA #Tillagt av TIM
+        #packages[car$load,1]=NA #Tillagt av TIM
         car$load=0
         if (sum(packages[,5])==2*nrow(packages)) {
           #print (paste("Congratulations! You suceeded in",i,"turns!"))
           return (i)
         }
+        car$mem$nextPackage = choosePackage(packages,car)
+        
       }      
       car=carReady(roads,car,packages)
       car=processNextMove(car,roads,dim)
