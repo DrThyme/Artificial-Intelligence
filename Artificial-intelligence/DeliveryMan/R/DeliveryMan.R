@@ -31,27 +31,6 @@ manualDM=function(roads,car,packages) {
   return (car)
 }
 
-#AV TIM
-# A very basic least-cost test where the car will always take the road
-# with the least cost.
-basicATest=function(roads,car,packages) {
-  print(packages)
-  up = roads$vroads[car$y+1,car$x]
-  right = roads$vroads[car$y,car$x+1]
-  print(paste("cost up:",up))
-  print(paste("cost right:",right))
-  if (up >= right){
-    car$nextMove = 6
-    print("MOVED RIGHT")
-    print("-------------------")
-    
-  } else {
-    car$nextMove = 8
-    print("MOVED UP")
-    print("-------------------")
-  }
-  return (car)
-}
 
 testFunction=function(roads,car,packages){
   findPackagePath(packages,car)
@@ -251,6 +230,7 @@ simplePathfinding=function(roads,car,xdest,ydest,dim){
   frontiers = pushFrontiers(frontiers,car$x,car$y,hArray[car$x,car$y])
   visited = matrix(0,nrow=dim,ncol=dim)
   moves = matrix(0,nrow=dim,ncol=dim)
+  walkingWeight = 2
   while(isEmptyFrontiers(frontiers)){
     value = popFrontiers(frontiers)
     frontiers = value$front
@@ -260,28 +240,32 @@ simplePathfinding=function(roads,car,xdest,ydest,dim){
       if(value$ycord<dim) {
         if(visited[value$xcord,value$ycord+1]==0){
           frontiers = pushFrontiers(frontiers,value$xcord,value$ycord+1,
-                                    (hArray[value$xcord,value$ycord+1]+roads$vroads[value$ycord,value$xcord]))
+                                    (hArray[value$xcord,value$ycord+1]+roads$vroads[value$ycord,value$xcord] + 
+                                       walkingWeight + (value$cost - hArray[value$xcord, value$ycord])))
           moves[value$xcord,value$ycord+1]=8
         }
       }
       if(value$ycord>1) { 
         if(visited[value$xcord,value$ycord-1]==0){
           frontiers = pushFrontiers(frontiers,value$xcord,value$ycord-1,
-                                    (hArray[value$xcord,value$ycord-1]+roads$vroads[value$ycord-1,value$xcord]))
+                                    (hArray[value$xcord,value$ycord-1]+roads$vroads[value$ycord-1,value$xcord] + 
+                                       walkingWeight + (value$cost - hArray[value$xcord, value$ycord])))
           moves[value$xcord,value$ycord-1]=2
         } 
       }
       if(value$xcord<dim) { 
         if(visited[value$xcord+1,value$ycord]==0){
           frontiers = pushFrontiers(frontiers,value$xcord+1,value$ycord,
-                                    (hArray[value$xcord+1,value$ycord]+roads$hroads[value$ycord,value$xcord]))
+                                    (hArray[value$xcord+1,value$ycord]+roads$hroads[value$ycord,value$xcord] + 
+                                       walkingWeight + (value$cost - hArray[value$xcord, value$ycord])))
           moves[value$xcord+1,value$ycord]=6
         } 
       }
       if(value$xcord>1) { 
         if(visited[value$xcord-1,value$ycord]==0){
           frontiers = pushFrontiers(frontiers,value$xcord-1,value$ycord,
-                                    (hArray[value$xcord-1,value$ycord]+roads$hroads[value$ycord,value$xcord-1]))
+                                    (hArray[value$xcord-1,value$ycord]+roads$hroads[value$ycord,value$xcord-1] + 
+                                       walkingWeight + (value$cost - hArray[value$xcord, value$ycord])))
           moves[value$xcord-1,value$ycord]=4
         } 
       }
