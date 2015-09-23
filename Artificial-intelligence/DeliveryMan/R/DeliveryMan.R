@@ -58,33 +58,32 @@ testFunction=function(roads,car,packages){
 }
 
 #AV TIM
-findPackagePath=function(packages,car){
+findPackagePath=function(packages){
   route = c()
   cost=c()
-  currentx = car$x
-  currenty = car$y
-  copy = packages
-  copy <- cbind(copy, 0)
-  copy[,5] = (abs(currentx-copy[,1])+abs(currenty-copy[,2]))
-  copy[,6] = (abs(copy[,1]-copy[,3])+abs(copy[,2]-copy[,4]))
+  currentx = 1
+  currenty = 1
+  packages <- cbind(packages, 0)
+  packages[,5] = (abs(currentx-packages[,1])+abs(currenty-packages[,2]))
+  packages[,6] = (abs(packages[,1]-packages[,3])+abs(packages[,2]-packages[,4]))
   next_route = 0
   for(i in 1:5){
-    tempCopy = copy
-    currentcost = tempCopy[i,5]+tempCopy[i,6]
+    copy = packages
+    currentcost = copy[i,5]+copy[i,6]
     route = append(route, i)
-    tempCopy[i,1] = NA
+    copy[i,1] = NA
     currentx = packages[i,3]
     currenty = packages[i,4]
     for(j in 1:4){
       #print(copy)
-      tempCopy[,5] <- (abs(currentx-tempCopy[,1])+abs(currenty-tempCopy[,2]))
-      min = min(tempCopy[,5], na.rm=TRUE)
-      next_route = which(tempCopy[,5] == min)[1]
+      copy[,5] <- (abs(currentx-copy[,1])+abs(currenty-copy[,2]))
+      min = min(copy[,5], na.rm=TRUE)
+      next_route = which(copy[,5] == min)[1]
       route = append(route,next_route)
-      tempCopy[next_route,1] = NA
-      currentx = tempCopy[next_route,3]
-      currenty = tempCopy[next_route,4]
-      currentcost = currentcost + tempCopy[next_route,5] + tempCopy[next_route,6]
+      copy[next_route,1] = NA
+      currentx = copy[next_route,3]
+      currenty = copy[next_route,4]
+      currentcost = currentcost + copy[next_route,5] + copy[next_route,6]
       #print(currentx)
       #print(currenty)
     }
@@ -95,25 +94,21 @@ findPackagePath=function(packages,car){
   for(i in 1:5){
     optimalRoute = append(optimalRoute, route[i+((leastCost-1)*5)])
   }
-  fixedRoute = correctRouteList(optimalRoute,packages)
-  return(fixedRoute)
+  return(optimalRoute)
 }
 
-correctRouteList=function(route,packages){
-  altRoute = route
-  for(i in 1:5){
-    if(packages[i,5] == 2){
-      altRoute = altRoute[-i]
-    }
+choosePackage=function(route,packages){
+  if(packages[route[1],5] == 0){
+    return (route[1])
+  } else if(packages[route[2],5] == 0){
+    return (route[2])
+  } else if(packages[route[3],5] == 0){
+    return (route[3])
+  } else if(packages[route[4],5] == 0){
+    return (route[4])
+  } else if(packages[route[5],5] == 0){
+    return (route[5])
   }
-  return (altRoute)
-}
-
-choosePackage=function(packages,car){
-  route = findPackagePath(packages,car)
-  print(packages)
-  print(route[1])
-  return (route[1])
 }
 
 #AV TIM
@@ -170,22 +165,18 @@ closestPackage=function(roads,car,packages) {
 }
 
 #AV ANNA
-bruteForcePackageOrder=function(packages,car){
-  toBeSearched = NULL
-  for(i in 1:length(packages[1,])){
-    if(packages[i, 5] == 0){
-      toBeSearched = append(i,toBeSearched)
-    }
-  }
-  return (bruteForcePackageOrderHelpis(-1,toBeSearched,packages,car)$n)
+bruteForcePackageOrder=function(packages){
+  toBeSearched = c(1:length(packages[1, ]))
+  temp = bruteForcePackageOrderHelpis(-1, toBeSearched, packages)
+  return (temp$n)
 }
 
 #AV ANNA
 #Distance from A deliver to B pick up
-distanceFromAtoB=function(a,b,packages,car){
+distanceFromAtoB=function(a, b, packages){
   if (a == -1){
-    diffInX = abs(car$x - packages[b, 1])
-    diffInY = abs(car$y - packages[b, 2])
+    diffInX = abs(1 - packages[b, 1])
+    diffInY = abs(1 - packages[b, 2])
   } else {
     diffInX = abs(packages[a, 3] - packages[b, 1])
     diffInY = abs(packages[a, 4] - packages[b, 2])
@@ -194,19 +185,19 @@ distanceFromAtoB=function(a,b,packages,car){
 }
 
 #AV ANNA
-bruteForcePackageOrderHelpis=function(currentNode,toBeSearched,packages,car){
+bruteForcePackageOrderHelpis=function(currentNode,toBeSearched,packages){
   if(length(toBeSearched) != 0){
     minScore = list(s=-1, n=NULL)
     for(i in 1:(length(toBeSearched))){
-      futureScoreAndNode = bruteForcePackageOrderHelpis(i,toBeSearched[-i],packages,car)
-
-      score = distanceFromAtoB(currentNode,toBeSearched[i],packages,car) + 
-        distanceFromAtoB(toBeSearched[i],toBeSearched[i],packages,car) +
+      futureScoreAndNode = bruteForcePackageOrderHelpis(i, toBeSearched[-i], packages)
+      
+      score = distanceFromAtoB(currentNode, toBeSearched[i], packages) +
+        distanceFromAtoB(toBeSearched[i], toBeSearched[i], packages) +
         futureScoreAndNode$s
-        
+      
       if((minScore$s == -1) || (minScore$s > score)){
         minScore$s = score
-        minScore$n = append(toBeSearched[i],futureScoreAndNode$n)
+        minScore$n = append(toBeSearched[i], futureScoreAndNode$n)
       }
     }
     return(minScore)
@@ -261,32 +252,36 @@ simplePathfinding=function(roads,car,xdest,ydest,dim){
       if(value$ycord<dim) {
         if(visited[value$xcord,value$ycord+1]==0){
           frontiers = pushFrontiers(frontiers,value$xcord,value$ycord+1,
-                                    (hArray[value$xcord,value$ycord+1]+roads$vroads[value$ycord,value$xcord]))
+                                    (hArray[value$xcord,value$ycord+1]+roads$vroads[value$ycord,value$xcord] +
+                                       value$cost - hArray[value$xcord,value$ycord]))
           moves[value$xcord,value$ycord+1]=8
         }
       }
-      if(value$ycord>1) { 
+      if(value$ycord>1) {
         if(visited[value$xcord,value$ycord-1]==0){
           frontiers = pushFrontiers(frontiers,value$xcord,value$ycord-1,
-                                    (hArray[value$xcord,value$ycord-1]+roads$vroads[value$ycord-1,value$xcord]))
+                                    (hArray[value$xcord,value$ycord-1]+roads$vroads[value$ycord-1,value$xcord] +
+                                       value$cost - hArray[value$xcord,value$ycord]))
           moves[value$xcord,value$ycord-1]=2
-        } 
+        }
       }
-      if(value$xcord<dim) { 
+      if(value$xcord<dim) {
         if(visited[value$xcord+1,value$ycord]==0){
           frontiers = pushFrontiers(frontiers,value$xcord+1,value$ycord,
-                                    (hArray[value$xcord+1,value$ycord]+roads$hroads[value$ycord,value$xcord]))
+                                    (hArray[value$xcord+1,value$ycord]+roads$hroads[value$ycord,value$xcord] +
+                                       value$cost - hArray[value$xcord,value$ycord]))
           moves[value$xcord+1,value$ycord]=6
-        } 
+        }
       }
-      if(value$xcord>1) { 
+      if(value$xcord>1) {
         if(visited[value$xcord-1,value$ycord]==0){
           frontiers = pushFrontiers(frontiers,value$xcord-1,value$ycord,
-                                    (hArray[value$xcord-1,value$ycord]+roads$hroads[value$ycord,value$xcord-1]))
+                                    (hArray[value$xcord-1,value$ycord]+roads$hroads[value$ycord,value$xcord-1] +
+                                       value$cost - hArray[value$xcord,value$ycord]))
           moves[value$xcord-1,value$ycord]=4
-        } 
+        }
       }
-      visited[value$xcord,value$ycord]=1 #Siffra fÃ¶r hur vi kom till denna nod! FIXED?
+      visited[value$xcord,value$ycord]=1 #Siffra för hur vi kom till denna nod! FIXED?
     }
   }
   return (moves)
@@ -343,14 +338,14 @@ findHeuristics=function(xdest,ydest,d) {
 }
 
 #AV TIM
-changeNextMove=function(roads,car,packages) {
+simpleTest=function(roads,car,packages) {
   dim = car$mem$size
   if(car$load==0){
     #distanceForPackage = abs(packages[,1]-packages[,3])+abs(packages[,2]-packages[,4])
     #distanceForCar = abs(car$x-packages[,1])+abs(car$y-packages[,2])
-    #totalDistance = distanceForCar
+    #totalDistance = distanceForCar + distanceForPackage
     #goal=which(totalDistance==min(totalDistance,na.rm=TRUE))[1]
-    goal = car$mem$nextPackage
+    goal = choosePackage(car$mem$route, packages)
     xdest=packages[goal,1]
     ydest=packages[goal,2]
     moves = simplePathfinding(roads,car,xdest,ydest,dim)
@@ -372,11 +367,11 @@ benchmark <- function (runs){
   Ours = 0
   for(i in 1:runs){
     rand <- sample(1:100000,1)
-    print(i)
+    print(rand)
     set.seed(rand)
     Teachers = Teachers + runDeliveryMan(carReady = basicDM, dim = 10, turns = 2000, pause = 0,del = 5)
     set.seed(rand)
-    Ours = Ours + runDeliveryMan(carReady = changeNextMove, dim = 10, turns = 2000, pause = 0,del = 5)
+    Ours = Ours + runDeliveryMan(carReady = simpleTest, dim = 10, turns = 2000, pause = 0,del = 5)
   }
   OurAvg = Ours/runs
   TeacherAvg = Teachers/runs
@@ -391,11 +386,10 @@ benchmarkIntervall <- function (start,end){
   Teachers = 0
   Ours = 0
   for(i in start:end){
-    print(i)
     set.seed(i)
     Teachers = Teachers + runDeliveryMan(carReady = basicDM, dim = 10, turns = 2000, pause = 0,del = 5)
     set.seed(i)
-    Ours = Ours + runDeliveryMan(carReady = changeNextMove, dim = 10, turns = 2000, pause = 0,del = 5)
+    Ours = Ours + runDeliveryMan(carReady = simpleTest, dim = 10, turns = 2000, pause = 0,del = 5)
   }
   OurAvg = Ours/(end-start)
   TeacherAvg = Teachers/(end-start)
@@ -407,53 +401,58 @@ benchmarkIntervall <- function (start,end){
 
 seed <- function(seed){
   set.seed(seed)
-  Teachers = runDeliveryMan(carReady = basicDM, dim = 10, turns = 2000, pause = 0,del = 5) 
+  Teachers = runDeliveryMan(carReady = basicDM, dim = 10, turns = 2000, pause = 0,del = 5)
   set.seed(seed)
-  Ours = runDeliveryMan(carReady = changeNextMove, dim = 10, turns = 2000, pause = 0,del = 5)
+  Ours = runDeliveryMan(carReady = simpleTest, dim = 10, turns = 2000, pause = 0,del = 5)
+  howMuchBetter = (Teachers-Ours)/Teachers
   print(paste("Our turns: ",Ours))
   print(paste("Teachers turns: ",Teachers))
-  }
+  print(paste("We are this much better (percent): ", (howMuchBetter*100)))
+}
 #' Run Delivery Man
-#' 
+#'
 #' Runs the delivery man game. In this game, deliveries are randomly placed on a city grid. You
 #' must pick up and deliver the deliveries as fast as possible under changing traffic conditions.
 #' Your score is the time it takes for you to complete this task. To play manually pass manualDM
 #' as the carReady function and enter the number pad direction numbers to make moves.
-#' @param carReady Your function that takes three arguments: (1) a list of two matrices giving the 
+#' @param carReady Your function that takes three arguments: (1) a list of two matrices giving the
 #' traffice conditions. The first matrix is named 'hroads' and gives a matrix of traffice conditions
-#' on the horizontal roads. The second matrix is named 'vroads' and gives a matrix of traffic 
+#' on the horizontal roads. The second matrix is named 'vroads' and gives a matrix of traffic
 #' conditional on the vertical roads. (2) a list providing information about your car. This
-#' list includes the x and y coordinates of the car with names 'x' and 'y', the package the car 
+#' list includes the x and y coordinates of the car with names 'x' and 'y', the package the car
 #' is carrying, with name 'load' (this is 0 if no package is being carried), a list called
 #' 'mem' that you can use to store information you want to remember from turn to turn, and
-#' a field called nextMove where you will write what you want the car to do. Moves are 
+#' a field called nextMove where you will write what you want the car to do. Moves are
 #' specified as on the number-pad (2 down, 4 left, 6 right, 8 up, 5 stay still). (3) A
 #' matrix containing information about the packages. This contains five columns and a row for each
 #' package. The first two columns give x and y coordinates about where the package should be picked
-#' up from. The next two columns give x and y coordinates about where the package should be 
+#' up from. The next two columns give x and y coordinates about where the package should be
 #' delivered to. The final column specifies the package status (0 is not picked up, 1 is picked up but not delivered, 2 is delivered).
 #' Your function should return the car object with the nextMove specified.
 #' @param dim The dimension of the board. You will be scored on a board of dimension 10.
-#' @param turns The number of turns the game should go for if deliveries are not made. Ignore this 
+#' @param turns The number of turns the game should go for if deliveries are not made. Ignore this
 #' except for noting that the default is 2000 so if you have not made deliveries after 2000 turns
-#' you fail.
+#' you fail.ben
 #' @param pause The pause period between moves. Ignore this.
 #' @param del The number of deliveries. You will be scored on a board with 5 deliveries.
 #' @return A string describing the outcome of the game.
 #' @export
-runDeliveryMan <- function (carReady=manualDM,dim=10,turns=2000,pause=0.1,del=5) {
+runDeliveryMan <- function (carReady=manualDM,dim=10,turns=2000,pause=0,del=5) {
   roads=makeRoadMatrices(dim)
   packages=matrix(sample(1:dim,replace=T,5*del),ncol=5)
   packages[,5]=rep(0,del)
-  car=list(x=1,y=1,wait=0,load=0,nextMove=NA,mem=list(xdest=0,ydest=0,size=dim,nextPackage=0))
-  car$mem$nextPackage = choosePackage(packages,car)
-  #car=list(x=1,y=1,wait=0,load=0,nextMove=NA,mem=list(xdest=0,ydest=0,size=dim,nextPackage=bruteForcePackageOrder(packages)))
+  #car=list(x=1,y=1,wait=0,load=0,nextMove=NA,mem=list(xdest=0,ydest=0,size=dim,route=bruteForcePackageOrder(packages)))
+  car=list(x=1,y=1,wait=0,load=0,nextMove=NA,mem=list(xdest=0,ydest=0,size=dim,route=findPackagePath(packages)))
+  #AV ANNA OBS SKA BORT!!!!!!!!!!!!!!!!!!!!!!
+  #return (packages)
+  #bruteForcePackageOrder(packages)  
+  #------------------------------------------
   for (i in 1:turns) {
-    makeDotGrid(dim,i) 
+    #makeDotGrid(dim,i)
     roads=updateRoads(roads$hroads,roads$vroads)
-    plotRoads(roads$hroads,roads$vroads) 
-    points(car$x,car$y,pch=16,col="blue",cex=3)  
-    plotPackages(packages)
+    #plotRoads(roads$hroads,roads$vroads)
+    #points(car$x,car$y,pch=16,col="blue",cex=3)  
+    #plotPackages(packages)
     if (car$wait==0) {
       if (car$load==0) {
         on=packageOn(car$x,car$y,packages)
@@ -463,14 +462,12 @@ runDeliveryMan <- function (carReady=manualDM,dim=10,turns=2000,pause=0.1,del=5)
         }
       } else if (packages[car$load,3]==car$x && packages[car$load,4]==car$y) {
         packages[car$load,5]=2
-        #packages[car$load,1]=NA #Tillagt av TIM
+        packages[car$load,1]=NA #Tillagt av TIM
         car$load=0
         if (sum(packages[,5])==2*nrow(packages)) {
           #print (paste("Congratulations! You suceeded in",i,"turns!"))
           return (i)
         }
-        car$mem$nextPackage = choosePackage(packages,car)
-        
       }      
       car=carReady(roads,car,packages)
       car=processNextMove(car,roads,dim)
@@ -489,7 +486,7 @@ packageOn<-function(x,y,packages){
   available=intersect(notpickedup,intersect(onX,onY))
   if (length(available)!=0) {
     return (available[1])
-  } 
+  }
   return (0)
 }
 processNextMove<-function(car,roads,dim) {
@@ -527,10 +524,10 @@ processNextMove<-function(car,roads,dim) {
   }
   car$nextMove=NA
   return (car)
-} 
+}
 
 plotPackages=function(packages) {
-  notpickedup=which(packages[,5]==0) 
+  notpickedup=which(packages[,5]==0)
   notdelivered=which(packages[,5]!=2)
   points(packages[notpickedup,1],packages[notpickedup,2],col="green",pch=18,cex=3)
   points(packages[notdelivered,3],packages[notdelivered,4],col="red",pch=18,cex=3)
