@@ -31,27 +31,6 @@ manualDM=function(roads,car,packages) {
   return (car)
 }
 
-#AV TIM
-# A very basic least-cost test where the car will always take the road
-# with the least cost.
-basicATest=function(roads,car,packages) {
-  print(packages)
-  up = roads$vroads[car$y+1,car$x]
-  right = roads$vroads[car$y,car$x+1]
-  print(paste("cost up:",up))
-  print(paste("cost right:",right))
-  if (up >= right){
-    car$nextMove = 6
-    print("MOVED RIGHT")
-    print("-------------------")
-    
-  } else {
-    car$nextMove = 8
-    print("MOVED UP")
-    print("-------------------")
-  }
-  return (car)
-}
 
 testFunction=function(roads,car,packages){
   findPackagePath(packages,car)
@@ -281,7 +260,7 @@ simplePathfinding=function(roads,car,xdest,ydest,dim){
           moves[value$xcord-1,value$ycord]=4
         }
       }
-      visited[value$xcord,value$ycord]=1 #Siffra för hur vi kom till denna nod! FIXED?
+      visited[value$xcord,value$ycord]=1 #Siffra f?r hur vi kom till denna nod! FIXED?
     }
   }
   return (moves)
@@ -304,7 +283,6 @@ findPath=function(xdest,ydest,moves){
       if(current == 8){
         last = 8
         y=y-1
-        
       }
       if(current == 2){
         last = 2
@@ -319,11 +297,10 @@ findPath=function(xdest,ydest,moves){
         x=x+1
       }
     }
-    
   }
-  #print(last)
   return (last)
 }
+
 
 #AV TIM, ANNA och LINUS
 findHeuristics=function(xdest,ydest,d) {
