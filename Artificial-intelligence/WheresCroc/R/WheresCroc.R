@@ -31,6 +31,7 @@ manualWC=function(moveInfo,readings,positions,edges,probs) {
 }
 
 
+
 getProbByPath=function() {
   m = matrix (c(0,0), ncol=40, nrow=40)
   edges = getEdges()
@@ -48,19 +49,59 @@ getProbByPath=function() {
   return(m)
 }
 
-calcMarkov=function(currentProbPerPlace, probs, readings) {
+calcMarkov=function(currentProbPerPlace, probs) {
   probByPath = getProbByPath()
   nextProbPerPlace = matrix(c(0,0), nrow=40)
   for(i in 1:40) {
     l = which(probByPath[, i] > 0) #index of prob>0
     for(j in l) {
-      nextProbPerPlace[i] = nextProbPerPlace[i] + currentProbPerPlace[i]*probByPath[j, i]
-      #nextProbPerPlace[i] = nextProbPerPlace[i]*probabilityGivenReading(i, readings, probs)
+      nextProbPerPlace[i] = nextProbPerPlace[i] + currentProbPerPlace[i]*probByPath[i, j]
+      nextProbPerPlace[i] = nextProbPerPlace[i]*probabilityGivenReading(i, getReadings(i, probs), probs)
     }
   }
   return(nextProbPerPlace)
 }
 
+# Calculates the reading probability of a point given the readings of the crocodile
+probabilityGivenReading = function(point,readings,probs){
+  #get the salinity reading in the current point
+  salinity_prob_upper = pnorm(readings[1]+5,probs$salinity[point,1],probs$salinity[point,2])
+  salinity_prob_lower = pnorm(readings[1]-5,probs$salinity[point,1],probs$salinity[point,2])
+  salinity_prob = salinity_prob_upper - salinity_prob_lower
+  
+  #get the phosphate reading in the current point
+  phosphate_prob_upper = pnorm(readings[1]+5,probs$phosphate[point,1],probs$phosphate[point,2])
+  phosphate_prob_lower = pnorm(readings[1]-5,probs$phosphate[point,1],probs$phosphate[point,2])
+  phosphate_prob = phosphate_prob_upper - phosphate_prob_lower
+
+  #get the nitrogen reading in the current point
+  nitrogen_prob_upper = pnorm(readings[1]+5,probs$nitrogen[point,1],probs$nitrogen[point,2])
+  nitrogen_prob_lower = pnorm(readings[1]-5,probs$nitrogen[point,1],probs$nitrogen[point,2])
+  nitrogen_prob = nitrogen_prob_upper - nitrogen_prob_lower
+  
+  total_prob = salinity_prob + phosphate_prob + nitrogen_prob
+  return(total_prob)
+  
+}
+
+functionTesting2=function(moveInfo,readings,positions,edges,probs){
+  print(readings)
+  croc = positions[1]
+  prob = c(probs$salinity[croc,1],probs$salinity[croc,2],probs$phosphate[croc,1],probs$phosphate[croc,2],probs$nitrogen[croc,1],probs$nitrogen[croc,2])
+  print(prob)
+}
+
+functionTesting=function(moveInfo,readings,positions,edges,probs){
+  for(i in 1:4){
+    rd = readline("Check which point: ")
+    rd = as.numeric(rd)
+    pointReading = c()
+    prob = probabiltyGivenReading(rd,readings,probs)
+    print(prob)
+  }
+  #moveInfo$moves=c(0,0)
+  #return(moveInfo)
+}
 
 #' Run Where's Croc
 #' 
@@ -132,7 +173,7 @@ runWheresCroc=function(makeMoves,showCroc=F,pause=1) {
     Sys.sleep(pause)
     
     readings=getReadings(positions[1],probs)
-    moveInfo=makeMoves(moveInfo,readings,positions[2:4],edges,probs)
+    moveInfo=makeMoves(moveInfo,readings,positions[1:4],edges,probs)
     if (length(moveInfo$moves)!=2) {
       stop("Error! Passed makeMoves function should return a vector of two elements.")
     }
