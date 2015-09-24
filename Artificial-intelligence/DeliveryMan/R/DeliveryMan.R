@@ -31,72 +31,8 @@ manualDM=function(roads,car,packages) {
   return (car)
 }
 
-#AV TIM
-# A very basic least-cost test where the car will always take the road
-# with the least cost.
-basicATest=function(roads,car,packages) {
-  print(packages)
-  up = roads$vroads[car$y+1,car$x]
-  right = roads$vroads[car$y,car$x+1]
-  print(paste("cost up:",up))
-  print(paste("cost right:",right))
-  if (up >= right){
-    car$nextMove = 6
-    print("MOVED RIGHT")
-    print("-------------------")
-    
-  } else {
-    car$nextMove = 8
-    print("MOVED UP")
-    print("-------------------")
-  }
-  return (car)
-}
-
-testFunction=function(roads,car,packages){
-  findPackagePath(packages,car)
-}
-
-#AV TIM
-findPackagePath=function(packages){
-  route = c()
-  cost=c()
-  currentx = 1
-  currenty = 1
-  packages <- cbind(packages, 0)
-  packages[,5] = (abs(currentx-packages[,1])+abs(currenty-packages[,2]))
-  packages[,6] = (abs(packages[,1]-packages[,3])+abs(packages[,2]-packages[,4]))
-  next_route = 0
-  for(i in 1:5){
-    copy = packages
-    currentcost = copy[i,5]+copy[i,6]
-    route = append(route, i)
-    copy[i,1] = NA
-    currentx = packages[i,3]
-    currenty = packages[i,4]
-    for(j in 1:4){
-      #print(copy)
-      copy[,5] <- (abs(currentx-copy[,1])+abs(currenty-copy[,2]))
-      min = min(copy[,5], na.rm=TRUE)
-      next_route = which(copy[,5] == min)[1]
-      route = append(route,next_route)
-      copy[next_route,1] = NA
-      currentx = copy[next_route,3]
-      currenty = copy[next_route,4]
-      currentcost = currentcost + copy[next_route,5] + copy[next_route,6]
-      #print(currentx)
-      #print(currenty)
-    }
-    cost = append(cost,currentcost)
-  }
-  leastCost = which.min(cost)[1]
-  optimalRoute = c()
-  for(i in 1:5){
-    optimalRoute = append(optimalRoute, route[i+((leastCost-1)*5)])
-  }
-  return(optimalRoute)
-}
-
+#choses the next package to as our goal in the a* algorithm.
+#The package chosen is the closest one according to manhattan distance.
 choosePackage=function(route,packages){
   if(packages[route[1],5] == 0){
     return (route[1])
@@ -111,112 +47,19 @@ choosePackage=function(route,packages){
   }
 }
 
-#AV TIM
-#The total distance needed for every packet
-packetDistance=function(roads,car,packages) {
-  distance = abs(packages[,1]-packages[,2])+abs(packages[,3]-packages[,4])-packages[,5]
-  return (distance)
-}
-
-
-#AV TIM
-#Choosing which path to take
-calculateNextMove=function(car,destX,destY) {
-  print(destX)
-  print(destY)
-  if (car$x < destX){
-    return (6)
-  }
-  if (car$x > destX){
-    return (4)
-  }
-  if (car$y < destY){
-    return (8)
-  }
-  if (car$y > destY){
-    return (2)
-  }
-}
-
-# AV TIM
-# Finding the closest package
-closestPackage=function(roads,car,packages) {
-  if (car$load == 0) {
-    distanceForPackage = abs(packages[,1]-packages[,3])+abs(packages[,2]-packages[,4])
-    distanceForCar = abs(car$x-packages[,1])+abs(car$y-packages[,2])
-    #totalDistance = distanceForPackage + distanceForCar
-    totalDistance = distanceForCar
-    #distance = packetDistance(packages)
-    goal=which(totalDistance==min(totalDistance,na.rm=TRUE))
-    car$mem.xdest=packages[goal,1]
-    car$mem.ydest=packages[goal,2]
-    
-    print(totalDistance)
-    print(paste("Pickup Location: X",packages[goal,1],"Y",packages[goal,2]))
-  }
-  if (car$load>0) {
-    car$mem.xdest=packages[car$load,3]
-    car$mem.ydest=packages[car$load,4]
-    print(paste("Current load:",car$load))
-    print(paste("Destination: X",packages[car$load,3],"Y",packages[car$load,4]))
-  }  
-  car$nextMove=calculateNextMove(car,car$mem.xdest,car$mem.ydest)
-  return (car)
-}
-
-#AV ANNA
-bruteForcePackageOrder=function(packages){
-  toBeSearched = c(1:length(packages[1, ]))
-  temp = bruteForcePackageOrderHelpis(-1, toBeSearched, packages)
-  return (temp$n)
-}
-
-#AV ANNA
-#Distance from A deliver to B pick up
-distanceFromAtoB=function(a, b, packages){
-  if (a == -1){
-    diffInX = abs(1 - packages[b, 1])
-    diffInY = abs(1 - packages[b, 2])
-  } else {
-    diffInX = abs(packages[a, 3] - packages[b, 1])
-    diffInY = abs(packages[a, 4] - packages[b, 2])
-  }
-  return(diffInX + diffInY)
-}
-
-#AV ANNA
-bruteForcePackageOrderHelpis=function(currentNode,toBeSearched,packages){
-  if(length(toBeSearched) != 0){
-    minScore = list(s=-1, n=NULL)
-    for(i in 1:(length(toBeSearched))){
-      futureScoreAndNode = bruteForcePackageOrderHelpis(i, toBeSearched[-i], packages)
-      
-      score = distanceFromAtoB(currentNode, toBeSearched[i], packages) +
-        distanceFromAtoB(toBeSearched[i], toBeSearched[i], packages) +
-        futureScoreAndNode$s
-      
-      if((minScore$s == -1) || (minScore$s > score)){
-        minScore$s = score
-        minScore$n = append(toBeSearched[i], futureScoreAndNode$n)
-      }
-    }
-    return(minScore)
-  }
-  return(list(s=0, n=NULL))
-}
-
-#AV TIM, ANNA och LINUS
+#creates the empty frontiers list
 createFrontiers=function(){
   frontiers = list(xcord=list(),ycord=list(),cost=list())
   return (frontiers)
 }
 
-#AV TIM, ANNA och LINUS
+#Returns true if the frontiers list is empty
 isEmptyFrontiers=function(frontiers){
-  return (length(frontiers$xcord)!=0)
+  return (length(frontiers$xcord)==0)
 }
 
-#AV TIM, ANNA och LINUS
+#Pops the node with the lowest cost in frontiers, returns a list with
+#the new list frontiers along with the node that was popped. 
 popFrontiers=function(frontiers){
   index = which.min(frontiers$cost)
   value = list(xcord=frontiers$xcord[[index]],ycord=frontiers$ycord[[index]],
@@ -228,7 +71,7 @@ popFrontiers=function(frontiers){
   return (value)
 }
 
-#AV TIM, ANNA och LINUS
+#Pushes a new node to the frontiers list.
 pushFrontiers=function(frontiers,newxcord,newycord,newcost){
   frontiers$xcord = append(frontiers$xcord,newxcord)
   frontiers$ycord = append(frontiers$ycord,newycord)
@@ -236,14 +79,15 @@ pushFrontiers=function(frontiers,newxcord,newycord,newcost){
   return (frontiers)
 }
 
-#AV TIM, ANNA och LINUS
+#Returns the least heavy path from the current position to the goal node. 
+#This is where a* is happening
 simplePathfinding=function(roads,car,xdest,ydest,dim){
   hArray=findHeuristics(xdest,ydest,dim)
   frontiers = createFrontiers()
   frontiers = pushFrontiers(frontiers,car$x,car$y,hArray[car$x,car$y])
   visited = matrix(0,nrow=dim,ncol=dim)
   moves = matrix(0,nrow=dim,ncol=dim)
-  while(isEmptyFrontiers(frontiers)){
+  while(!isEmptyFrontiers(frontiers)){
     value = popFrontiers(frontiers)
     frontiers = value$front
     if((value$xcord == xdest) && (value$ycord == ydest)){
@@ -252,6 +96,7 @@ simplePathfinding=function(roads,car,xdest,ydest,dim){
       if(value$ycord<dim) {
         if(visited[value$xcord,value$ycord+1]==0){
           frontiers = pushFrontiers(frontiers,value$xcord,value$ycord+1,
+                                    # Below is the calculation of the cost of the new node to be pushed to frontiers.
                                     (hArray[value$xcord,value$ycord+1]+roads$vroads[value$ycord,value$xcord] +
                                        value$cost - hArray[value$xcord,value$ycord]))
           moves[value$xcord,value$ycord+1]=8
@@ -281,13 +126,12 @@ simplePathfinding=function(roads,car,xdest,ydest,dim){
           moves[value$xcord-1,value$ycord]=4
         }
       }
-      visited[value$xcord,value$ycord]=1 #Siffra för hur vi kom till denna nod! FIXED?
+      visited[value$xcord,value$ycord]=1 
     }
   }
   return (moves)
 }
 
-#AV TIM
 findPath=function(xdest,ydest,moves){
   x=xdest
   y=ydest
@@ -295,8 +139,6 @@ findPath=function(xdest,ydest,moves){
   flag = TRUE
   while(flag){
     current = moves[x,y]
-    #print("current")
-    #print(current)
     if(is.null(current) | current == 0){
       flag = FALSE
       current=10
@@ -304,7 +146,6 @@ findPath=function(xdest,ydest,moves){
       if(current == 8){
         last = 8
         y=y-1
-        
       }
       if(current == 2){
         last = 2
@@ -319,26 +160,12 @@ findPath=function(xdest,ydest,moves){
         x=x+1
       }
     }
-    
   }
-  #print(last)
   return (last)
 }
 
-#AV TIM, ANNA och LINUS
-findHeuristics=function(xdest,ydest,d) {
-  hArray<-array(0,dim = c(d,d))
-  for(x in 1:d){
-    for(y in 1:d){
-      hArray[x,y]=(abs(x-xdest)+abs(y-ydest))*3
-    }
-  }
-  #print(hArray)
-  return (hArray)
-}
 
-#AV TIM
-simpleTest=function(roads,car,packages) {
+makeMove=function(roads,car,packages) {
   dim = car$mem$size
   if(car$load==0){
     #distanceForPackage = abs(packages[,1]-packages[,3])+abs(packages[,2]-packages[,4])
@@ -356,12 +183,11 @@ simpleTest=function(roads,car,packages) {
     moves = simplePathfinding(roads,car,xdest,ydest,dim)
     nextMove = findPath(xdest,ydest,moves)
   }
-  #print(nextMove)
   car$nextMove=nextMove
   return (car)
 }
 
-# AV TIM
+#tests how well our implementation works compared to the basic that was given
 benchmark <- function (runs){
   Teachers = 0
   Ours = 0
@@ -371,7 +197,7 @@ benchmark <- function (runs){
     set.seed(rand)
     Teachers = Teachers + runDeliveryMan(carReady = basicDM, dim = 10, turns = 2000, pause = 0,del = 5)
     set.seed(rand)
-    Ours = Ours + runDeliveryMan(carReady = simpleTest, dim = 10, turns = 2000, pause = 0,del = 5)
+    Ours = Ours + runDeliveryMan(carReady = makeMove, dim = 10, turns = 2000, pause = 0,del = 5)
   }
   OurAvg = Ours/runs
   TeacherAvg = Teachers/runs
@@ -381,7 +207,7 @@ benchmark <- function (runs){
   print(paste("We are this much better (percent): ", (howMuchBetter*100)))
 }
 
-# AV TIM
+#Calculates the average amount of moves for every seed between (including) start and end. 
 benchmarkIntervall <- function (start,end){
   Teachers = 0
   Ours = 0
@@ -389,7 +215,7 @@ benchmarkIntervall <- function (start,end){
     set.seed(i)
     Teachers = Teachers + runDeliveryMan(carReady = basicDM, dim = 10, turns = 2000, pause = 0,del = 5)
     set.seed(i)
-    Ours = Ours + runDeliveryMan(carReady = simpleTest, dim = 10, turns = 2000, pause = 0,del = 5)
+    Ours = Ours + runDeliveryMan(carReady = makeMove, dim = 10, turns = 2000, pause = 0,del = 5)
   }
   OurAvg = Ours/(end-start)
   TeacherAvg = Teachers/(end-start)
@@ -403,7 +229,7 @@ seed <- function(seed){
   set.seed(seed)
   Teachers = runDeliveryMan(carReady = basicDM, dim = 10, turns = 2000, pause = 0,del = 5)
   set.seed(seed)
-  Ours = runDeliveryMan(carReady = simpleTest, dim = 10, turns = 2000, pause = 0,del = 5)
+  Ours = runDeliveryMan(carReady = makeMove, dim = 10, turns = 2000, pause = 0,del = 5)
   howMuchBetter = (Teachers-Ours)/Teachers
   print(paste("Our turns: ",Ours))
   print(paste("Teachers turns: ",Teachers))
