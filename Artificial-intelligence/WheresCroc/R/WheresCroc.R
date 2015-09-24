@@ -30,6 +30,58 @@ manualWC=function(moveInfo,readings,positions,edges,probs) {
   return(moveInfo)
 }
 
+#####################################################
+#          OUR CODE TO SOLVE THE PROBLEM            #
+#####################################################
+
+# Calculates the reading probability of a point given the readings of the crocodile
+probabiltyGivenReading = function(point,readings,probs){
+  #get the salinity reading in the current point
+  salinity_prob_upper = pnorm(readings[1]+5,probs$salinity[point,1],probs$salinity[point,2])
+  salinity_prob_lower = pnorm(readings[1]-5,probs$salinity[point,1],probs$salinity[point,2])
+  salinity_prob = salinity_prob_upper - salinity_prob_lower
+  
+  #get the phosphate reading in the current point
+  phosphate_prob_upper = pnorm(readings[1]+5,probs$phosphate[point,1],probs$phosphate[point,2])
+  phosphate_prob_lower = pnorm(readings[1]-5,probs$phosphate[point,1],probs$phosphate[point,2])
+  phosphate_prob = phosphate_prob_upper - phosphate_prob_lower
+
+  #get the nitrogen reading in the current point
+  nitrogen_prob_upper = pnorm(readings[1]+5,probs$nitrogen[point,1],probs$nitrogen[point,2])
+  nitrogen_prob_lower = pnorm(readings[1]-5,probs$nitrogen[point,1],probs$nitrogen[point,2])
+  nitrogen_prob = nitrogen_prob_upper - nitrogen_prob_lower
+  
+  total_prob = salinity_prob + phosphate_prob + nitrogen_prob
+  return(total_prob)
+  
+}
+
+
+
+functionTesting2=function(moveInfo,readings,positions,edges,probs){
+  print(readings)
+  croc = positions[1]
+  prob = c(probs$salinity[croc,1],probs$salinity[croc,2],probs$phosphate[croc,1],probs$phosphate[croc,2],probs$nitrogen[croc,1],probs$nitrogen[croc,2])
+  print(prob)
+}
+
+functionTesting=function(moveInfo,readings,positions,edges,probs){
+  for(i in 1:4){
+    rd = readline("Check which point: ")
+    rd = as.numeric(rd)
+    pointReading = c()
+    prob = probabiltyGivenReading(rd,readings,probs)
+    print(prob)
+  }
+  #moveInfo$moves=c(0,0)
+  #return(moveInfo)
+}
+
+
+
+
+
+
 #' Run Where's Croc
 #' 
 #' Runs the Where's Croc game. In this game, you are a ranger in an Australian national park. 
@@ -100,7 +152,7 @@ runWheresCroc=function(makeMoves,showCroc=F,pause=1) {
     Sys.sleep(pause)
     
     readings=getReadings(positions[1],probs)
-    moveInfo=makeMoves(moveInfo,readings,positions[2:4],edges,probs)
+    moveInfo=makeMoves(moveInfo,readings,positions[1:4],edges,probs)
     if (length(moveInfo$moves)!=2) {
       stop("Error! Passed makeMoves function should return a vector of two elements.")
     }
