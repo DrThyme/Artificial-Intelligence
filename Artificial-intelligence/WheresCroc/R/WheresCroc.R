@@ -30,6 +30,38 @@ manualWC=function(moveInfo,readings,positions,edges,probs) {
   return(moveInfo)
 }
 
+
+getProbByPath=function() {
+  m = matrix (c(0,0), ncol=40, nrow=40)
+  edges = getEdges()
+  for (i in 1:length(edges[,1])) {
+    m[edges[i, 1], edges[i, 2]] = 1
+    m[edges[i, 2], edges[i, 1]] = 1
+  }
+  for (i in 1:length(m[1,])) {
+    m[i, i] = 1 #because Croc can stay at the same place
+    l = which(m[i, ] == 1)
+    for(j in l) { 
+      m[i, j] = 1/(length(l)) #probability to move to j given in i
+    }
+  }
+  return(m)
+}
+
+calcMarkov=function(currentProbPerPlace, probs, readings) {
+  probByPath = getProbByPath()
+  nextProbPerPlace = matrix(c(0,0), nrow=40)
+  for(i in 1:40) {
+    l = which(probByPath[, i] > 0) #index of prob>0
+    for(j in l) {
+      nextProbPerPlace[i] = nextProbPerPlace[i] + currentProbPerPlace[i]*probByPath[j, i]
+      #nextProbPerPlace[i] = nextProbPerPlace[i]*probabilityGivenReading(i, readings, probs)
+    }
+  }
+  return(nextProbPerPlace)
+}
+
+
 #' Run Where's Croc
 #' 
 #' Runs the Where's Croc game. In this game, you are a ranger in an Australian national park. 
@@ -260,7 +292,7 @@ getReadings=function(point,probs){
 }
 
 
-#' @export
+#' @export 
 plotGameboard=function(points,edges,move,positions,showCroc) {
   plot(points,pch=18,col="blue",cex=2,xlab="X",ylab="Y",main=paste("Where's Croc - Move",move))
   xFrom=points[edges[,1],1]
