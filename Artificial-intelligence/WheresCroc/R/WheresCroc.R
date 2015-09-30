@@ -30,9 +30,37 @@ manualWC=function(moveInfo,readings,positions,edges,probs) {
   return(moveInfo)
 }
 
-#####################################################
-#          OUR CODE TO SOLVE THE PROBLEM            #
-#####################################################
+
+
+getProbByPath=function() {
+  m = matrix (c(0,0), ncol=40, nrow=40)
+  edges = getEdges()
+  for (i in 1:length(edges[,1])) {
+    m[edges[i, 1], edges[i, 2]] = 1
+    m[edges[i, 2], edges[i, 1]] = 1
+  }
+  for (i in 1:length(m[1,])) {
+    m[i, i] = 1 #because Croc can stay at the same place
+    l = which(m[i, ] == 1)
+    for(j in l) { 
+      m[i, j] = 1/(length(l)) #probability to move to j given in i
+    }
+  }
+  return(m)
+}
+
+calcMarkov=function(currentProbPerPlace, probs) {
+  probByPath = getProbByPath()
+  nextProbPerPlace = matrix(c(0,0), nrow=40)
+  for(i in 1:40) {
+    l = which(probByPath[, i] > 0) #index of prob>0
+    for(j in l) {
+      nextProbPerPlace[i] = nextProbPerPlace[i] + currentProbPerPlace[i]*probByPath[i, j]
+      nextProbPerPlace[i] = nextProbPerPlace[i]*probabilityGivenReading(i, getReadings(i, probs), probs)
+    }
+  }
+  return(nextProbPerPlace)
+}
 
 # Calculates the reading probability of a point given the readings of the crocodile
 probabiltyGivenReading_pnorm = function(point,readings,probs){
@@ -57,6 +85,7 @@ probabiltyGivenReading_pnorm = function(point,readings,probs){
   
 }
 
+
 # Calculates the reading probability of a point given the readings of the crocodile
 probabiltyGivenReading_dnorm = function(point,readings,probs){
   #get the salinity reading in the current point
@@ -72,6 +101,11 @@ probabiltyGivenReading_dnorm = function(point,readings,probs){
   total_prob = salinity_prob * phosphate_prob * nitrogen_prob
   return(total_prob)
   
+functionTesting2=function(moveInfo,readings,positions,edges,probs){
+  print(readings)
+  croc = positions[1]
+  prob = c(probs$salinity[croc,1],probs$salinity[croc,2],probs$phosphate[croc,1],probs$phosphate[croc,2],probs$nitrogen[croc,1],probs$nitrogen[croc,2])
+  print(prob)
 }
 
 functionTesting=function(moveInfo,readings,positions,edges,probs){
@@ -88,11 +122,6 @@ functionTesting=function(moveInfo,readings,positions,edges,probs){
   #moveInfo$moves=c(0,0)
   #return(moveInfo)
 }
-
-
-
-
-
 
 #' Run Where's Croc
 #' 
@@ -324,7 +353,7 @@ getReadings=function(point,probs){
 }
 
 
-#' @export
+#' @export 
 plotGameboard=function(points,edges,move,positions,showCroc) {
   plot(points,pch=18,col="blue",cex=2,xlab="X",ylab="Y",main=paste("Where's Croc - Move",move))
   xFrom=points[edges[,1],1]
