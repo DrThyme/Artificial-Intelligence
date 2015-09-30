@@ -35,43 +35,55 @@ manualWC=function(moveInfo,readings,positions,edges,probs) {
 #####################################################
 
 # Calculates the reading probability of a point given the readings of the crocodile
-probabiltyGivenReading = function(point,readings,probs){
+probabiltyGivenReading_pnorm = function(point,readings,probs){
   #get the salinity reading in the current point
-  salinity_prob_upper = pnorm(readings[1]+5,probs$salinity[point,1],probs$salinity[point,2])
-  salinity_prob_lower = pnorm(readings[1]-5,probs$salinity[point,1],probs$salinity[point,2])
+  salinity_prob_upper = pnorm(readings[1]+1,probs$salinity[point,1],probs$salinity[point,2])
+  salinity_prob_lower = pnorm(readings[1]-1,probs$salinity[point,1],probs$salinity[point,2])
   salinity_prob = salinity_prob_upper - salinity_prob_lower
   
   #get the phosphate reading in the current point
-  phosphate_prob_upper = pnorm(readings[1]+5,probs$phosphate[point,1],probs$phosphate[point,2])
-  phosphate_prob_lower = pnorm(readings[1]-5,probs$phosphate[point,1],probs$phosphate[point,2])
+  phosphate_prob_upper = pnorm(readings[2]+1,probs$phosphate[point,1],probs$phosphate[point,2])
+  phosphate_prob_lower = pnorm(readings[2]-1,probs$phosphate[point,1],probs$phosphate[point,2])
   phosphate_prob = phosphate_prob_upper - phosphate_prob_lower
 
   #get the nitrogen reading in the current point
-  nitrogen_prob_upper = pnorm(readings[1]+5,probs$nitrogen[point,1],probs$nitrogen[point,2])
-  nitrogen_prob_lower = pnorm(readings[1]-5,probs$nitrogen[point,1],probs$nitrogen[point,2])
+  nitrogen_prob_upper = pnorm(readings[3]+1,probs$nitrogen[point,1],probs$nitrogen[point,2])
+  nitrogen_prob_lower = pnorm(readings[3]-1,probs$nitrogen[point,1],probs$nitrogen[point,2])
   nitrogen_prob = nitrogen_prob_upper - nitrogen_prob_lower
   
-  total_prob = salinity_prob + phosphate_prob + nitrogen_prob
+  # consider each reading as a separate observation at the same time slot.
+  total_prob = salinity_prob * phosphate_prob * nitrogen_prob
   return(total_prob)
   
 }
 
-
-
-functionTesting2=function(moveInfo,readings,positions,edges,probs){
-  print(readings)
-  croc = positions[1]
-  prob = c(probs$salinity[croc,1],probs$salinity[croc,2],probs$phosphate[croc,1],probs$phosphate[croc,2],probs$nitrogen[croc,1],probs$nitrogen[croc,2])
-  print(prob)
+# Calculates the reading probability of a point given the readings of the crocodile
+probabiltyGivenReading_dnorm = function(point,readings,probs){
+  #get the salinity reading in the current point
+  salinity_prob = dnorm(readings[1],probs$salinity[point,1],probs$salinity[point,2])
+  
+  #get the phosphate reading in the current point
+  phosphate_prob = dnorm(readings[2],probs$phosphate[point,1],probs$phosphate[point,2])
+  
+  #get the nitrogen reading in the current point
+  nitrogen_prob = dnorm(readings[3],probs$nitrogen[point,1],probs$nitrogen[point,2])
+  
+  # consider each reading as a separate observation at the same time slot.
+  total_prob = salinity_prob * phosphate_prob * nitrogen_prob
+  return(total_prob)
+  
 }
 
 functionTesting=function(moveInfo,readings,positions,edges,probs){
+  print(readings[1])
   for(i in 1:4){
     rd = readline("Check which point: ")
     rd = as.numeric(rd)
     pointReading = c()
-    prob = probabiltyGivenReading(rd,readings,probs)
-    print(prob)
+    prob_dnorm = probabiltyGivenReading_dnorm(rd,readings,probs)
+    print(prob_dnorm)
+    prob_pnorm = probabiltyGivenReading_pnorm(rd,readings,probs)
+    print(prob_pnorm)
   }
   #moveInfo$moves=c(0,0)
   #return(moveInfo)
