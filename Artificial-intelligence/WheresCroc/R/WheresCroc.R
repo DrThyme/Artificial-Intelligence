@@ -49,7 +49,7 @@ getProbByPath=function() {
   return(m)
 }
 
-calcMarkov=function(currentProbPerPlace, probs) {
+calcMarkovANNA=function(currentProbPerPlace, probs) {
   probByPath = getProbByPath()
   nextProbPerPlace = matrix(c(0,0), nrow=40)
   for(i in 1:40) {
@@ -62,8 +62,51 @@ calcMarkov=function(currentProbPerPlace, probs) {
   return(nextProbPerPlace)
 }
 
+calcMarkov=function(currentProbPerPlace, trans, probs, readings) {
+  nextProbPerPlace = matrix(0, nrow=40)
+  for(i in 1:40) {
+    l = which(trans[, i] > 0) #index of prob>0
+    for(j in l) {
+      nextProbPerPlace[i] = nextProbPerPlace[i] + currentProbPerPlace[j]*trans[i, j]
+    }
+    nextProbPerPlace[i] = nextProbPerPlace[i]*probabilityGivenReading_dnorm(i, readings, probs)
+  }
+  nextProbPerPlace = normalize(nextProbPerPlace)
+  return(nextProbPerPlace)
+}
+
+normalize=function(markov){
+  total = sum(markov)
+  for(i in 1:40){
+    markov[i,1] = markov[i,1]/total
+  }
+  return(markov)
+}
+
+getNextMove=function(markov,ranger,edges){
+  best_guess = which.max(markov)[1]
+  #print(best_guess)
+  options = getOptions(ranger,edges)
+  if(best_guess == ranger){
+    mv1 = 0
+  } else{
+    #options = options[-(which(options == ranger))]
+    mv1 = options[which.min(abs(options-best_guess))[1]]
+  }
+  if(mv1 == best_guess){
+    mv2 = 0
+  } else{
+    options = getOptions(mv1,edges)
+    #options = options[-(which(options == mv1))]
+    mv2 = options[which.min(abs(options-best_guess))[1]]
+  }
+  nextMove = c(mv1,mv2)
+  
+  return(nextMove)
+}
+
 # Calculates the reading probability of a point given the readings of the crocodile
-probabiltyGivenReading_pnorm = function(point,readings,probs){
+probabilityGivenReading_pnorm = function(point,readings,probs){
   #get the salinity reading in the current point
   salinity_prob_upper = pnorm(readings[1]+1,probs$salinity[point,1],probs$salinity[point,2])
   salinity_prob_lower = pnorm(readings[1]-1,probs$salinity[point,1],probs$salinity[point,2])
@@ -87,7 +130,7 @@ probabiltyGivenReading_pnorm = function(point,readings,probs){
 
 
 # Calculates the reading probability of a point given the readings of the crocodile
-probabiltyGivenReading_dnorm = function(point,readings,probs){
+probabilityGivenReading_dnorm = function(point,readings,probs){
   #get the salinity reading in the current point
   salinity_prob = dnorm(readings[1],probs$salinity[point,1],probs$salinity[point,2])
   
@@ -100,28 +143,55 @@ probabiltyGivenReading_dnorm = function(point,readings,probs){
   # consider each reading as a separate observation at the same time slot.
   total_prob = salinity_prob * phosphate_prob * nitrogen_prob
   return(total_prob)
-  
-functionTesting2=function(moveInfo,readings,positions,edges,probs){
-  print(readings)
-  croc = positions[1]
-  prob = c(probs$salinity[croc,1],probs$salinity[croc,2],probs$phosphate[croc,1],probs$phosphate[croc,2],probs$nitrogen[croc,1],probs$nitrogen[croc,2])
-  print(prob)
 }
 
-functionTesting=function(moveInfo,readings,positions,edges,probs){
-  print(readings[1])
-  for(i in 1:4){
-    rd = readline("Check which point: ")
-    rd = as.numeric(rd)
-    pointReading = c()
-    prob_dnorm = probabiltyGivenReading_dnorm(rd,readings,probs)
-    print(prob_dnorm)
-    prob_pnorm = probabiltyGivenReading_pnorm(rd,readings,probs)
-    print(prob_pnorm)
+initialize_matrix=function(positions){
+  m = matrix(c(1/37), nrow=40)
+  for(i in 1:40){
+    if(positions[1] == i || positions[2] == i || positions[3] == i){
+      m[i,1] = 0
+    }
   }
-  #moveInfo$moves=c(0,0)
-  #return(moveInfo)
+  return(m)
 }
+  
+main=function(moveInfo,readings,positions,edges,probs){
+  #print(moveInfo$mem$currentState)
+  trans = getProbByPath()
+  moveInfo$mem$currentState = calcMarkov(moveInfo$mem$currentState,trans,probs,readings)
+  nextMove = getNextMove(moveInfo$mem$currentState,positions[3],edges)
+  moveInfo$moves=nextMove
+  #print(getOptions(positions[3],edges))
+  #print(moveInfo$mem$currentState)
+  #print(which.max(moveInfo$mem$currentState))
+  #print(sum(moveInfo$mem$currentState))
+  #print(nextMove)
+  return(moveInfo)
+}
+
+benchmark=function(runs){
+  Teachers = 0
+  Ours = 0
+  for(i in 1:runs){
+    rand <- sample(1:100000,1)
+    set.seed(rand)
+    Ours = Ours + runWheresCroc(main, pause=0)
+  }
+  OurAvg = Ours/runs
+  print(paste("Our average is:", OurAvg))
+}
+
+benchmarkIntervall=function(start,end){
+  Teachers = 0
+  Ours = 0
+  for(i in start:end){
+    set.seed(i)
+    Ours = Ours + runWheresCroc(main, pause=0)
+  }
+  OurAvg = Ours/(end-start+1)
+  print(paste("Our average is:", OurAvg))
+}
+
 
 #' Run Where's Croc
 #' 
@@ -168,7 +238,8 @@ runWheresCroc=function(makeMoves,showCroc=F,pause=1) {
   edges=getEdges()
   probs=getProbs()
   move=0
-  moveInfo=list(moves=c(),mem=list())
+  start = initialize_matrix(positions)
+  moveInfo=list(moves=c(),mem=list(currentState = start))
   while (!is.na(positions[1])) {
     move=move+1
     positions[1]=sample(getOptions(positions[1],edges),1)
@@ -188,12 +259,12 @@ runWheresCroc=function(makeMoves,showCroc=F,pause=1) {
     if (!is.na(positions[3]) && positions[3]==positions[1]) {
       positions[3]=-positions[3]
     }
-    plotGameboard(points,edges,move,positions,showCroc)
+    #plotGameboard(points,edges,move,positions,showCroc)
     
-    Sys.sleep(pause)
+    #Sys.sleep(pause)
     
     readings=getReadings(positions[1],probs)
-    moveInfo=makeMoves(moveInfo,readings,positions[1:4],edges,probs)
+    moveInfo=makeMoves(moveInfo,readings,positions[2:4],edges,probs)
     if (length(moveInfo$moves)!=2) {
       stop("Error! Passed makeMoves function should return a vector of two elements.")
     }
