@@ -30,6 +30,67 @@ manualWC=function(moveInfo,readings,positions,edges,probs) {
   return(moveInfo)
 }
 
+getMovePath=function(markov,ranger,edges){
+  best_guess = which.max(markov)[1]
+  if(best_guess == ranger){
+    return(c(0,0))
+  }
+  visited = numeric(40)
+  visited[ranger] = -1
+  options = getOptions(ranger,edges)
+  frontier = c(options[-length(options)])
+  for(i in 1:length(frontier)){
+    visited[frontier[i]]=ranger
+  }
+  
+  while(length(frontier) > 0){
+    expanded = frontier[1]
+    frontier = frontier[-1]
+    if(expanded == best_guess){
+      break
+    } else{
+      options = getOptions(expanded,edges)
+      options = options[-length(options)]
+      for(i in 1:length(options)){
+        check = options[i]
+        if(visited[check] == 0){
+          frontier[length(frontier)+1] <- check
+          visited[check] = expanded
+        }
+      }
+    }
+  }
+  nextMove = walkThePath(best_guess,visited)
+  
+  return(nextMove)
+}
+
+walkThePath=function(best_guess,visited){
+  path = c(best_guess)
+  while(TRUE){
+    nextNode = path[length(path)]
+    if(nextNode == -1){
+      path = path[-length(path)]
+      path = path[-length(path)]
+      break
+    } else {
+      path[length(path)+1] <- visited[nextNode]
+    }
+  }
+  if(length(path) >= 2){
+    mv1 = path[length(path)]
+    mv2 = path[length(path)-1]
+  } else if(length(path) == 1){
+    mv1 = path[length(path)]
+    mv2 = 0
+  } else{
+    mv1 = 0
+    mv2 = 0
+  }
+  return(c(mv1,mv2))
+}
+
+
 
 
 getProbByPath=function() {
@@ -49,7 +110,7 @@ getProbByPath=function() {
   return(m)
 }
 
-calcMarkov=function(currentProbPerPlace, trans, probs, readings) {
+calcMarkov=function(currentProbPerPlace, trans, probs, readings,positions) {
   nextProbPerPlace = matrix(0, nrow=40)
   for(i in 1:40) {
     l = which(trans[, i] > 0) #index of prob>0
@@ -57,6 +118,9 @@ calcMarkov=function(currentProbPerPlace, trans, probs, readings) {
       nextProbPerPlace[i] = nextProbPerPlace[i] + currentProbPerPlace[j]*trans[i, j]
     }
     nextProbPerPlace[i] = nextProbPerPlace[i]*probabilityGivenReading_dnorm(i, readings, probs)
+    if((i == positions[1] && !is.na(positions[1]))  || (i == positions[2] && !is.na(positions[2]))){
+      nextProbPerPlace[i] = 0
+    }
   }
   nextProbPerPlace = normalize(nextProbPerPlace)
   return(nextProbPerPlace)
@@ -69,106 +133,6 @@ normalize=function(markov){
   }
   return(markov)
 }
-
-oldGetNextMove=function(markov,ranger,edges){
-  best_guess = which.max(markov)[1]
-  #print(best_guess)
-  options = getOptions(ranger,edges)
-  if(best_guess == ranger){
-    mv1 = 0
-  } else{
-    #options = options[-(which(options == ranger))]
-    mv1 = options[which.min(abs(options-best_guess))[1]]
-  }
-  if(mv1 == best_guess){
-    mv2 = 0
-  } else{
-    options = getOptions(mv1,edges)
-    #options = options[-(which(options == mv1))]
-    mv2 = options[which.min(abs(options-best_guess))[1]]
-  }
-  nextMove = c(mv1,mv2)
-  
-  return(nextMove)
-}
-
-#breathFirst
-getNextMove=function(markov,ranger,edges){
-  goal = which.max(markov)[1]
-  if(goal == ranger) {
-    return (c(0, 0))
-  }
-  toBeSearched = list()
-  toBeSearched[1] = ranger
-  path = numeric(40)
-  path[ranger] = -1
-  notFound = TRUE
-  while((length(toBeSearched) > 0) && (notFound == TRUE)) {
-    current = toBeSearched[[1]] 
-    toBeSearched = toBeSearched[-1]
-    if(current == goal) {
-      notFound = FALSE
-    } else {
-      options = getOptions(current, edges)
-      options = options[- length(options)]
-      for(p in options) {
-        if(path[p] == 0) {
-          path[p] = current
-          toBeSearched[length(toBeSearched)+1] = p
-        } 
-      } 
-    }
-  }
-  orderOfMoves = list()
-  cursor = goal
-  temp = goal
-  mv1 = goal
-  mv2 = goal
-  while(cursor != -1) {
-    mv2 = mv1
-    mv1 = temp
-    temp = cursor
-    cursor = path[cursor]
-  }
-  if (mv1 == goal) {
-    mv1 = 0
-    mv2 = 0
-  }
-  if (mv2 == goal) {
-    mv2 = 0
-  }
-  print("mv1")
-  print(mv1)
-  print("mv2")
-  print(mv2)
-
-  return (c(mv1, mv2))
-}
-
-
-
-# Calculates the reading probability of a point given the readings of the crocodile
-probabilityGivenReading_pnorm = function(point,readings,probs){
-  #get the salinity reading in the current point
-  salinity_prob_upper = pnorm(readings[1]+1,probs$salinity[point,1],probs$salinity[point,2])
-  salinity_prob_lower = pnorm(readings[1]-1,probs$salinity[point,1],probs$salinity[point,2])
-  salinity_prob = salinity_prob_upper - salinity_prob_lower
-  
-  #get the phosphate reading in the current point
-  phosphate_prob_upper = pnorm(readings[2]+1,probs$phosphate[point,1],probs$phosphate[point,2])
-  phosphate_prob_lower = pnorm(readings[2]-1,probs$phosphate[point,1],probs$phosphate[point,2])
-  phosphate_prob = phosphate_prob_upper - phosphate_prob_lower
-
-  #get the nitrogen reading in the current point
-  nitrogen_prob_upper = pnorm(readings[3]+1,probs$nitrogen[point,1],probs$nitrogen[point,2])
-  nitrogen_prob_lower = pnorm(readings[3]-1,probs$nitrogen[point,1],probs$nitrogen[point,2])
-  nitrogen_prob = nitrogen_prob_upper - nitrogen_prob_lower
-  
-  # consider each reading as a separate observation at the same time slot.
-  total_prob = salinity_prob * phosphate_prob * nitrogen_prob
-  return(total_prob)
-}
-
 
 # Calculates the reading probability of a point given the readings of the crocodile
 probabilityGivenReading_dnorm = function(point,readings,probs){
@@ -199,14 +163,26 @@ initialize_matrix=function(positions){
 main=function(moveInfo,readings,positions,edges,probs){
   #print(moveInfo$mem$currentState)
   trans = getProbByPath()
-  moveInfo$mem$currentState = calcMarkov(moveInfo$mem$currentState,trans,probs,readings)
+  if(positions[1] < 0 && !is.na(positions[1])){
+    moveInfo$mem$currentState[,1] = 0
+    moveInfo$mem$currentState[(positions[1] * (-1)),1] = 1
+  }
+  if(positions[2] < 0 && !is.na(positions[2])){
+    moveInfo$mem$currentState[,1] = 0
+    moveInfo$mem$currentState[(positions[2] * (-1)),1] = 1
+  }
+  moveInfo$mem$currentState = calcMarkov(moveInfo$mem$currentState,trans,probs,readings,positions)
+  markov = moveInfo$mem$currentState
+  best_guess = which.max(markov)[1]
+  markov[which(markov == best_guess)[1]] = 0
+  next_best_guess = which.max(markov)[1] 
   nextMove = getNextMove(moveInfo$mem$currentState,positions[3],edges)
+  if(nextMove[1] == 0){
+    secondNextMove = getNextMove(markov,best_guess,edges)
+    nextMove[2] = secondNextMove[1]
+  }
   moveInfo$moves=nextMove
-  #print(getOptions(positions[3],edges))
-  #print(moveInfo$mem$currentState)
-  #print(which.max(moveInfo$mem$currentState))
-  #print(sum(moveInfo$mem$currentState))
-  #print(nextMove)
+  
   return(moveInfo)
 }
 
